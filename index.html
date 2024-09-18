@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/shiny/7.gif">
+    <title>Ad Tag Comparison Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<h2>Ad Tag URL Comparison Tool</h2>
+<div class="toggle-container">
+    <label class="switch">
+        <input type="checkbox" id="retainToggle" onclick="saveState()">
+        <span class="slider"></span>
+    </label>
+    <span class="toggle-retain" id="toggleRetain">Retain tags</span>
+    <label class="switch">
+        <input type="checkbox" id="tagToggle" onclick="toggleTagInputs()">
+        <span class="slider"></span>
+    </label>
+    <span class="toggle-label" id="toggleLabel">Compare two ad tags</span>
+</div>
+
+<div class="input-container">
+    <div class="input-field" style="position: relative;">
+        <label for="adTag1">Ad Tag 1:</label>
+        <textarea id="adTag1" placeholder="Enter a valid ad tag URL"></textarea>
+        <div id="alertBanner" class="banner"></div>
+    </div>
+    <div class="input-field hidden" id="adTag2Container">
+        <label for="adTag2">Ad Tag 2:</label>
+        <textarea id="adTag2" placeholder="Enter a valid ad tag URL"></textarea>
+    </div>
+</div>
+
+<div class="button-container">
+    <button id="actionButton" onclick="compareAdTags()">Inspect Ad Tag</button>
+    <button id="resetButton" onclick="clearState()">Reset</button>
+</div>
+<div id="share_container">
+    <a href="#" id="share_link" onclick="copyShareLink()">Share tag</a>
+    <span class="alt tooltip"><small><strong>&#9432;</strong></small> <span class="tooltiptext">Copy ad tag comparison or inspection to a sharable URL</span></span>
+</div>
+<h3>Comparison Result:</h3>
+<table id="comparisonTable" class="one-tag">
+    <thead>
+        <tr>
+            <th style="width: 15%;">Parameter</th>
+            <th id="adTag1Header">Ad Tag 1</th>
+            <th id="adTag2Header" class="hidden">Ad Tag 2</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<script src="tooltips.js"></script>
+<script src="scripts.js"></script>
+
+</body>
+</html>
