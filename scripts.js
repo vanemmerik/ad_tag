@@ -221,8 +221,8 @@ const compareAdTags = () => {
     comparisonTable.innerHTML = '';
 
     allKeys.forEach(key => {
-        let val1 = params1[key] || 'Not present',
-            val2 = params2[key] || (toggle ? 'Not present' : ''),
+        let val1 = params1.hasOwnProperty(key) ? (params1[key] ? params1[key] : 'Value missing') : 'Parameter missing',
+            val2 = params2.hasOwnProperty(key) ? (params2[key] ? params2[key] : 'Value missing') : (toggle ? 'Parameter missing' : ''),
             row = comparisonTable.insertRow(),
             paramCell = row.insertCell(0);
 
@@ -240,19 +240,33 @@ const compareAdTags = () => {
         if (toggle) {
             const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
             row.insertCell(2).textContent = displayVal2;
-
-            if (val1 === val2 && val1 !== 'Not present') {
-                row.classList.add('same');
-            } else if (val1 === 'Not present' || val2 === 'Not present') {
-                row.classList.add('not-present');
-            } else if (val1 === '' || val2 === '') {
-                row.classList.add('not-present');
+            const cell1 = row.cells[1],
+                cell2 = row.cells[2];
+        
+            if (val1 === 'Parameter missing' && val2 === 'Value missing') {
+                cell1.classList.add('no-parameter');
+                cell2.classList.add('no-value');
+            } else if (val1 === 'Value missing' && val2 === 'Parameter missing') {
+                cell1.classList.add('no-value');
+                cell2.classList.add('no-parameter');
+            } else if (val1 === val2) {
+                cell1.classList.add('same');
+                cell2.classList.add('same');
+            } else if (val2 === 'Value missing') {
+                cell1.classList.add('same');
+                cell2.classList.add('no-value');
+            } else if (val2 === 'Parameter missing') {
+                cell1.classList.add('same');
+                cell2.classList.add('no-parameter');
+            } else if (val1 === 'Value missing') {
+                cell1.classList.add('no-value');
+                cell2.classList.add('same');
+            } else if (val1 === 'Parameter missing') {
+                cell1.classList.add('no-parameter');
+                cell2.classList.add('same');
             } else {
-                row.classList.add('different');
-            }
-        } else {
-            if (val1 === 'Not present' || val1 === '') {
-                row.classList.add('not-present');
+                cell1.classList.add('no-value');
+                cell2.classList.add('no-value');
             }
         }
     });

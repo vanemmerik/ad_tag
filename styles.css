@@ -82,14 +82,14 @@ td:first-child {
     white-space: nowrap;
     width: 1%;
 }
-tr.same td {
+.same{
     background-color: #c8e6c9;
 }
-tr.not-present td {
-    background-color: #fff9c4;
+.no-value{
+    background-color: #ffc4c4;
 }
-tr.different td {
-    background-color: #ffc107;
+.no-parameter{
+    background-color: #faf3b8;
 }
 
 .banner {
