@@ -88,13 +88,15 @@ td:first-child {
 }
 
 .same{
-    background-color: #c8e6c9;
+    background-color: #45a049;
+
 }
 .no-value{
-    background-color: #ffc4c4;
+    background-color: #ffc107;
 }
 .no-parameter{
-    background-color: #faf3b8;
+    background-color: #f44336;
+    color: #FFF;
 }
 
 .banner {
