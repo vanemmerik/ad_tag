@@ -240,31 +240,43 @@ const compareAdTags = () => {
         if (toggle) {
             const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
             row.insertCell(2).textContent = displayVal2;
-            const cell1 = row.cells[1],
+            const cell0 = row.cells[0],
+                cell1 = row.cells[1],
                 cell2 = row.cells[2];
         
             if (val1 === 'Parameter missing' && val2 === 'Value missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('no-parameter');
                 cell2.classList.add('no-value');
             } else if (val1 === 'Value missing' && val2 === 'Parameter missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('no-value');
                 cell2.classList.add('no-parameter');
+            } else if (val1 === 'Value missing' && val2 === 'Value missing') {
+                cell0.classList.add('tag-issue');
+                cell1.classList.add('no-value');
+                cell2.classList.add('no-value');
             } else if (val1 === val2) {
                 cell1.classList.add('same');
                 cell2.classList.add('same');
             } else if (val2 === 'Value missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('same');
                 cell2.classList.add('no-value');
             } else if (val2 === 'Parameter missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('same');
                 cell2.classList.add('no-parameter');
             } else if (val1 === 'Value missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('no-value');
                 cell2.classList.add('same');
             } else if (val1 === 'Parameter missing') {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('no-parameter');
                 cell2.classList.add('same');
             } else {
+                cell0.classList.add('tag-issue');
                 cell1.classList.add('no-value');
                 cell2.classList.add('no-value');
             }

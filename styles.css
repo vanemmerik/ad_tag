@@ -82,6 +82,11 @@ td:first-child {
     white-space: nowrap;
     width: 1%;
 }
+
+.tag-issue {
+    background-color: #CCC;
+}
+
 .same{
     background-color: #c8e6c9;
 }
