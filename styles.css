@@ -91,10 +91,12 @@ td:first-child {
     background-color: #45a049;
     color: #FFF;
 }
-.no-value{
+
+.no-value, .deprecated{
     background-color: #ffc107;
 }
-.no-parameter{
+
+.no-parameter, .mandatory{
     background-color: #f44336;
     color: #FFF;
 }

@@ -84,6 +84,7 @@ const toggleTagInputs = () => {
             }
         });
     }
+    // compareAdTags();
 }
 
 const saveState = () => {
@@ -220,7 +221,16 @@ const compareAdTags = () => {
         comparisonTable = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
     comparisonTable.innerHTML = '';
 
+    // Ensure mandatory parameters are always checked
+    for (const key in parameterTooltips) {
+        if (parameterTooltips[key]?.mandatory) {
+            allKeys.add(key);
+        }
+    }
+
     allKeys.forEach(key => {
+        const isMandatory = parameterTooltips[key]?.mandatory,
+            isDeprecated = parameterTooltips[key]?.deprecated;
         let val1 = params1.hasOwnProperty(key) ? (params1[key] ? params1[key] : 'Value missing') : 'Parameter missing',
             val2 = params2.hasOwnProperty(key) ? (params2[key] ? params2[key] : 'Value missing') : (toggle ? 'Parameter missing' : ''),
             row = comparisonTable.insertRow(),
@@ -236,15 +246,49 @@ const compareAdTags = () => {
 
         const displayVal1 = containsURLEncoded(val1) ? val1 : decodeURIComponent(val1);
         row.insertCell(1).textContent = displayVal1;
+        const cell0 = row.cells[0],
+            cell1 = row.cells[1];
 
+        // Handle deprecated and mandatory parameters
+        if (isDeprecated) {
+            row.classList.add('deprecated');
+        }
+        if (isMandatory && val1 === 'Value missing') {
+            cell1.classList.add('no-value');
+            cell1.innerText = 'Mandatory - value required';
+            cell0.classList.add('mandatory');
+        }
+        if (isMandatory && val1 === 'Parameter missing') {
+            cell1.classList.add('no-parameter');
+            cell1.innerText = 'Mandatory - parameter missing';
+            cell0.classList.add('mandatory');
+        }
+        if (val1 === 'Value missing') {
+            cell1.classList.add('no-value');
+            cell0.classList.add('tag-issue');
+        }
+
+        // Handle toggle case
         if (toggle) {
             const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
             row.insertCell(2).textContent = displayVal2;
-            const cell0 = row.cells[0],
-                cell1 = row.cells[1],
-                cell2 = row.cells[2];
-        
-            if (val1 === 'Parameter missing' && val2 === 'Value missing') {
+            const cell2 = row.cells[2];
+
+            if (isMandatory && (val2 === 'Value missing' || val2 === 'Parameter missing')) {
+                cell2.classList.add('mandatory');
+                if (val2 === 'Value missing') {
+                    cell2.innerText = 'Mandatory - value required';
+                    cell2.classList.remove('mandatory');
+                } else {
+                    cell2.innerText = 'Mandatory - parameter missing';
+                }
+            }
+
+            // Handle comparison logic
+            if (val1 === val2 && val1 !== 'Parameter missing' && val1 !== 'Value missing') {
+                cell1.classList.add('same');
+                cell2.classList.add('same');
+            } else if (val1 === 'Parameter missing' && val2 === 'Value missing') {
                 cell0.classList.add('tag-issue');
                 cell1.classList.add('no-parameter');
                 cell2.classList.add('no-value');
@@ -256,9 +300,6 @@ const compareAdTags = () => {
                 cell0.classList.add('tag-issue');
                 cell1.classList.add('no-value');
                 cell2.classList.add('no-value');
-            } else if (val1 === val2) {
-                cell1.classList.add('same');
-                cell2.classList.add('same');
             } else if (val2 === 'Value missing') {
                 cell0.classList.add('tag-issue');
                 cell1.classList.add('same');
@@ -277,14 +318,15 @@ const compareAdTags = () => {
                 cell2.classList.add('same');
             } else {
                 cell0.classList.add('tag-issue');
-                cell1.classList.add('no-value');
-                cell2.classList.add('no-value');
+                cell1.classList.add('different');
+                cell2.classList.add('different');
             }
         }
     });
 
     saveState();
 };
+
 
 const getTooltipContent = (param) => {
     const tooltipData = parameterTooltips[param];

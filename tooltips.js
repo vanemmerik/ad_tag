@@ -9,7 +9,8 @@ const parameterTooltips = {
         },
         "ad_rule": {
            "definition": "Ad Rule",
-           "explination": "The ad rule parameter accepts a constant value that indicates whether to \nreturn a VAST creative or an ad rules response.\n\nThe default setting for ad rules depends on an Ad Manager network setting. \nYou can override the setting for specific ad tags using the examples below.\nUsage example\n\nRequest for VAST creative:\n```ad_rule=0```\n\nRequest for ad rules (VMAP):\n```ad_rule=1```\nRequirement:\n\n*Required for video ad rules*"
+           "explination": "The ad rule parameter accepts a constant value that indicates whether to \nreturn a VAST creative or an ad rules response.\n\nThe default setting for ad rules depends on an Ad Manager network setting. \nYou can override the setting for specific ad tags using the examples below.\nUsage example\n\nRequest for VAST creative:\n```ad_rule=0```\n\nRequest for ad rules (VMAP):\n```ad_rule=1```\nRequirement:\n\n*Required for video ad rules*",
+           "mandatory": true
         },
         "ad_type": {
            "definition": "Ad Type",
@@ -41,7 +42,8 @@ const parameterTooltips = {
         },
         "correlator": {
            "definition": "Correlator",
-           "explination": "The correlator parameter accepts a variable value that is shared by \nmultiple requests coming from the same page view. It's used to implement \ncompetitive exclusions, including those in cookieless environments.\n\nIf the IMA SDK is used, the correlator value is set automatically. If your player attempts to set this value, the SDK overwrites it with its own value.\n\nIf the IMA SDK is not used, ensure that you set this value to a truly \nrandom, positive, integer value that is not being reused by multiple page views.\n\nUsage example:\n```correlator=4345645667```\n\nRequirement:\n\n*Required for web and app*\n\nRecommended for Programmatic monetization"
+           "explination": "The correlator parameter accepts a variable value that is shared by \nmultiple requests coming from the same page view. It's used to implement \ncompetitive exclusions, including those in cookieless environments.\n\nIf the IMA SDK is used, the correlator value is set automatically. If your player attempts to set this value, the SDK overwrites it with its own value.\n\nIf the IMA SDK is not used, ensure that you set this value to a truly \nrandom, positive, integer value that is not being reused by multiple page views.\n\nUsage example:\n```correlator=4345645667```\n\nRequirement:\n\n*Required for web and app*\n\nRecommended for Programmatic monetization",
+           "mandatory": true
         },
         "cust_params": {
            "definition": "Custom Key-Value Parameters",
@@ -49,7 +51,8 @@ const parameterTooltips = {
         },
         "description_url": {
            "definition": "Description URL",
-           "explination": "The description URL parameter accepts a variable value that should describe \nthe video playing on the page. Outline the page with 1-3 paragraphs \ndescribing the content. For example, stitch together the description_url \npage content dynamically from predefined blocks. Learn more about providing \na distinct description URL.\n\nThe description_url value must be URL-encoded for web page video players \nand CTV/OTT devices and non-encoded for mobile in-app video players.\n\nThis parameter is not set automatically by the IMA SDK. It needs to be set \nmanually.\nUsage example\n\nURL-encoded:\n```description_url=\nhttps%3A%2F%2Fwww.sample.com%2Fgolf.html```\n\nNon-encoded:\n```description_url=\nhttps://www.sample.com/golf.html```\nRequirement:\n\n*Required for web, app, and Ad Exchange*\n\n*Recommended for Programmatic monetization*"
+           "explination": "The description URL parameter accepts a variable value that should describe \nthe video playing on the page. Outline the page with 1-3 paragraphs \ndescribing the content. For example, stitch together the description_url \npage content dynamically from predefined blocks. Learn more about providing \na distinct description URL.\n\nThe description_url value must be URL-encoded for web page video players \nand CTV/OTT devices and non-encoded for mobile in-app video players.\n\nThis parameter is not set automatically by the IMA SDK. It needs to be set \nmanually.\nUsage example\n\nURL-encoded:\n```description_url=\nhttps%3A%2F%2Fwww.sample.com%2Fgolf.html```\n\nNon-encoded:\n```description_url=\nhttps://www.sample.com/golf.html```\nRequirement:\n\n*Required for web, app, and Ad Exchange*\n\n*Recommended for Programmatic monetization*",
+           "mandatory": true
         },
         "dth": {
            "definition": "Device Type Hint",
@@ -57,7 +60,8 @@ const parameterTooltips = {
         },
         "env": {
            "definition": "Environment",
-           "explination": "The environment parameter accepts a constant value that indicates an \nin-stream request, or that the request is specifically from a video player.\n\nPossible values are instream, which can be used for video and audio ads, or \nvp which can only be used for video ads.\n\nUsage example:\n\nVideo and/or audio:\n```env=instream```\n\nVideo only:\n```env=vp```\n\nRequirement:\n*Required for web and app*"
+           "explination": "The environment parameter accepts a constant value that indicates an \nin-stream request, or that the request is specifically from a video player.\n\nPossible values are instream, which can be used for video and audio ads, or \nvp which can only be used for video ads.\n\nUsage example:\n\nVideo and/or audio:\n```env=instream```\n\nVideo only:\n```env=vp```\n\nRequirement:\n*Required for web and app*",
+           "mandatory": true
         },
         "excl_cat": {
            "definition": "Exclusion Category",
@@ -137,7 +141,8 @@ const parameterTooltips = {
         },
         "output": {
            "definition": "Ad Output Format",
-           "explination": "The ad output format parameter accepts a constant value which should be set \nto the output format of ad.\n\nUse ```output=vast``` for the default VAST version set for your network.\nFor specific ad tags or parts of your site, you can request specific VAST or \nVMAP versions.\n\nFor VAST, if your video player uses the IMA SDK, the output parameter for a \nvideo ad request will always be set to ```output=xml_vast4```.\n\nThis poses no reliability risk as the SDK is backwards compatible with all VAST versions \nthat any third-party ad server may serve.\n\nUse ```output=vmap``` to return the default VMAP version you have activated for \nyour network (for example, VMAP 1). If you return VAST inside of VMAP, you \ncan use ```xml_vmap1_vast3``` or ```xml_vmap1_vast4``` to specify the VAST version to return.\nUsage example\n\nYour network's default VAST setting: ```output=vast```\n\nVAST 4:\n```output=xml_vast4```\n\nYour network's default VMAP setting:\n```output=vmap```\n\nVMAP 1:\n```output=xml_vmap1```\n\nVMAP 1, returning VAST 4:\n```output=xml_vmap1_vast4```\n\nRequirement:\n*Required for web and app*"
+           "explination": "The ad output format parameter accepts a constant value which should be set \nto the output format of ad.\n\nUse ```output=vast``` for the default VAST version set for your network.\nFor specific ad tags or parts of your site, you can request specific VAST or \nVMAP versions.\n\nFor VAST, if your video player uses the IMA SDK, the output parameter for a \nvideo ad request will always be set to ```output=xml_vast4```.\n\nThis poses no reliability risk as the SDK is backwards compatible with all VAST versions \nthat any third-party ad server may serve.\n\nUse ```output=vmap``` to return the default VMAP version you have activated for \nyour network (for example, VMAP 1). If you return VAST inside of VMAP, you \ncan use ```xml_vmap1_vast3``` or ```xml_vmap1_vast4``` to specify the VAST version to return.\nUsage example\n\nYour network's default VAST setting: ```output=vast```\n\nVAST 4:\n```output=xml_vast4```\n\nYour network's default VMAP setting:\n```output=vmap```\n\nVMAP 1:\n```output=xml_vmap1```\n\nVMAP 1, returning VAST 4:\n```output=xml_vmap1_vast4```\n\nRequirement:\n*Required for web and app*",
+           "mandatory": true,
         },
         "plcmt": {
            "definition": "Placement",
@@ -237,7 +242,8 @@ const parameterTooltips = {
         },
         "ssss": {
            "definition": "Server-side Stitching Source",
-           "explination": "The server-side stitching source parameter accepts a constant value which \nshould be set to a recognized, Google-supplied value for your video \nstitching technology vendor.\n\nVideo stitching technology vendors using server-to-server integrations with \nGoogle are given this value from Google and are able to provide it to you. \nYou can reach out to your Google account manager with any questions about \nthe value to set to this parameter.\nUsage example\n\n```ssss=brightcove```\nRequirement\n\n*Required for server-side implementations*"
+           "explination": "The server-side stitching source parameter accepts a constant value which \nshould be set to a recognized, Google-supplied value for your video \nstitching technology vendor.\n\nVideo stitching technology vendors using server-to-server integrations with \nGoogle are given this value from Google and are able to provide it to you. \nYou can reach out to your Google account manager with any questions about \nthe value to set to this parameter.\nUsage example\n\n```ssss=brightcove```\nRequirement\n\n*Required for server-side implementations*",
+           "mandatory_ssai": true
         },
         "sz": {
            "definition": "Size",
@@ -253,11 +259,13 @@ const parameterTooltips = {
         },
         "unviewed_position_start": {
            "definition": "Delayed Impressions",
-           "explination": "The delayed impressions parameter accepts a constant value to \nindicate delayed impressions for video.\n\nUsage example:\n```unviewed_position_start=1```\n\nRequirement:\n*Required for web and app*"
+           "explination": "The delayed impressions parameter accepts a constant value to \nindicate delayed impressions for video.\n\nUsage example:\n```unviewed_position_start=1```\n\nRequirement:\n*Required for web and app*",
+           "mandatory": true
         },
         "url": {
            "definition": "URL",
-           "explination": "The URL parameter accepts a variable value which should be set to the full \nURL from which the request is sent. This value is needed to help buyers \nidentify and understand the context of where this request is coming from. \nTo the extent possible, this value should be dynamically populated on the \nad request. \n\nOn a web page, this is the URL of the page that displays the video player. \nIf you use the IMA SDK, the URL value is set automatically. If your player \nsets this value, the IMA SDK will respect the value being set.\n\nIn an app (mobile or CTV), this value should be set to a URL that most \naccurately represents the video or audio inventory being monetized. For \ninstance, if the user is watching a video within a mobile app that is also \navailable on a desktop equivalent URL.*\n\nThe value of this parameter should be encoded.*\nUsage example\n\n```url=https%3A%2F%2Fwww.videoad.com%2Fgolf.html```\n\nFor apps, if it is not possible to set this parameter to a variable URL \nvalue, it's recommended that it be set with the following pattern:\n```url=https%3A%2F%2F.adsenseformobileapps.com```\nRequirement\n\n*Required for web and app*\n\n*Recommended for Programmatic monetization*"
+           "explination": "The URL parameter accepts a variable value which should be set to the full \nURL from which the request is sent. This value is needed to help buyers \nidentify and understand the context of where this request is coming from. \nTo the extent possible, this value should be dynamically populated on the \nad request. \n\nOn a web page, this is the URL of the page that displays the video player. \nIf you use the IMA SDK, the URL value is set automatically. If your player \nsets this value, the IMA SDK will respect the value being set.\n\nIn an app (mobile or CTV), this value should be set to a URL that most \naccurately represents the video or audio inventory being monetized. For \ninstance, if the user is watching a video within a mobile app that is also \navailable on a desktop equivalent URL.*\n\nThe value of this parameter should be encoded.*\nUsage example\n\n```url=https%3A%2F%2Fwww.videoad.com%2Fgolf.html```\n\nFor apps, if it is not possible to set this parameter to a variable URL \nvalue, it's recommended that it be set with the following pattern:\n```url=https%3A%2F%2F.adsenseformobileapps.com```\nRequirement\n\n*Required for web and app*\n\n*Recommended for Programmatic monetization*",
+           "mandatory": true
         },
         "vad_type": {
            "definition": "Video Ad Type",
@@ -293,6 +301,7 @@ const parameterTooltips = {
         },
         "ss_req": {
          "definition": "SSAI Request",
-         "explination": "This is deprecated and GAM now uses the combination of ```serverside.doubleclick.net``` and the ```ssss=``` parameter to define the ad as SSAI."
+         "explination": "This is deprecated and GAM now uses the combination of ```serverside.doubleclick.net``` and the ```ssss=``` parameter to define the ad as SSAI.",
+         "deprecated": true
       }
 };
