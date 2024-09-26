@@ -13,15 +13,56 @@ const hasTooltip = (param) => {
 const parseAdTag = (url) => {
     const queryString = url.split('?')[1];
     if (!queryString) return {};
-    
-    const params = {};
-    const pairs = queryString.split('&');
+
+    const params = {}, 
+          pairs = queryString.split('&');
 
     pairs.forEach(pair => {
-        const [key, value] = pair.split('=');
-        params[key] = value ? value : '';
+        if (!pair || !pair.includes('=')) {
+            if (!params['&']) {
+                params['&'] = ['No parameter or value provided'];
+            } else {
+                params['&'].push('No parameter or value provided');
+            }
+        } else {
+            const [key, value] = pair.split('=');
+            if (!params[key]) {
+                params[key] = [value ? value : 'No value provided'];
+            } else {
+                params[key].push(value ? value : 'No value provided');
+            }
+        }
     });
+
     return params;
+};
+
+
+const containsWhiteSpace = (tag) => {
+    return /\s/.test(tag);
+}
+
+const duplicateParameters = (adTag) => {
+    const queryString = adTag.split('?')[1];
+    if (!queryString) return [];
+
+    const params = queryString.split('&');
+    const paramCounts = {};
+    const duplicates = [];
+
+    params.forEach(param => {
+        const key = param.split('=')[0];
+        if (paramCounts[key]) {
+            paramCounts[key]++;
+            if (paramCounts[key] === 2) {
+                duplicates.push(key);
+            }
+        } else {
+            paramCounts[key] = 1;
+        }
+    });
+
+    return duplicates;
 };
 
 const getAdType = (url) => {
@@ -202,8 +243,40 @@ const compareAdTags = () => {
         alertBanner.classList.remove('amber');
         alertBanner.innerText = 'Please enter a valid GAM ad tag';
         return;
+    } else if ((containsWhiteSpace(adTag1)) || (containsWhiteSpace(adTag2))) {
+        alertBanner.classList.add('show');
+        alertBanner.classList.remove('amber');
+        alertBanner.innerText = 'Ad tag contains whitespace';
+        setTimeout(() => {
+            alertBanner.classList.remove('show');
+        }, 3000);
+        return;
+    } else {
+        alertBanner.classList.remove('show');
     }
-    alertBanner.classList.remove('show');
+
+    const duplicates1 = duplicateParameters(adTag1), 
+        duplicates2 = toggle ? duplicateParameters(adTag2) : [];
+
+    if (duplicates1.length > 0) {
+        console.log('Duplicates found in Ad Tag 1:', duplicates1.join(', '));
+        alertBanner.classList.add('show');
+        alertBanner.innerText = `Duplicate parameters found in Ad Tag 1: ${duplicates1.join(', ')}`;
+        setTimeout(() => {
+            alertBanner.classList.remove('show');
+        }, 3000);
+        return;
+    }
+
+    if (duplicates2.length > 0) {
+        console.log('Duplicates found in Ad Tag 2:', duplicates2.join(', '));
+        alertBanner.classList.add('show');
+        alertBanner.innerText = `Duplicate parameters found in Ad Tag 2: ${duplicates2.join(', ')}`;
+        setTimeout(() => {
+            alertBanner.classList.remove('show');
+        }, 3000);
+        return;
+    }
 
     const params1 = parseAdTag(adTag1),
         params2 = toggle ? parseAdTag(adTag2) : {},
@@ -221,112 +294,126 @@ const compareAdTags = () => {
         comparisonTable = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
     comparisonTable.innerHTML = '';
 
-    // Ensure mandatory parameters are always checked
     for (const key in parameterTooltips) {
         if (parameterTooltips[key]?.mandatory) {
             allKeys.add(key);
         }
     }
 
+    // Iterate through all keys in both ad tags.
     allKeys.forEach(key => {
         const isMandatory = parameterTooltips[key]?.mandatory,
             isDeprecated = parameterTooltips[key]?.deprecated;
-        let val1 = params1.hasOwnProperty(key) ? (params1[key] ? params1[key] : 'Value missing') : 'Parameter missing',
-            val2 = params2.hasOwnProperty(key) ? (params2[key] ? params2[key] : 'Value missing') : (toggle ? 'Parameter missing' : ''),
-            row = comparisonTable.insertRow(),
-            paramCell = row.insertCell(0);
 
-        paramCell.textContent = key;
-        if (hasTooltip(key)) {
-            const tooltipIcon = document.createElement('span');
-            tooltipIcon.classList.add('tooltip');
-            tooltipIcon.innerHTML = `<small><strong>&#9432;</strong></small> <span class="tooltiptext">${getTooltipContent(key)}</span>`;
-            paramCell.appendChild(tooltipIcon);
-        }
+        let val1Array = Array.isArray(params1[key]) ? params1[key] : [params1[key]],
+            val2Array = Array.isArray(params2[key]) ? params2[key] : [params2[key]];
 
-        const displayVal1 = containsURLEncoded(val1) ? val1 : decodeURIComponent(val1);
-        row.insertCell(1).textContent = displayVal1;
-        const cell0 = row.cells[0],
-            cell1 = row.cells[1];
+        // If there are no values default to 'Parameter missing'.
+        val1Array = val1Array.filter(Boolean).length > 0 ? val1Array : ['Parameter missing'];
+        val2Array = val2Array.filter(Boolean).length > 0 ? val2Array : ['Parameter missing'];
 
-        // Handle deprecated and mandatory parameters
-        if (isDeprecated) {
-            row.classList.add('deprecated');
-        }
-        if (isMandatory && val1 === 'Value missing') {
-            cell1.classList.add('no-value');
-            cell1.innerText = 'Mandatory - value required';
-            cell0.classList.add('mandatory');
-        }
-        if (isMandatory && val1 === 'Parameter missing') {
-            cell1.classList.add('no-parameter');
-            cell1.innerText = 'Mandatory - parameter missing';
-            cell0.classList.add('mandatory');
-        }
-        if (val1 === 'Value missing') {
-            cell1.classList.add('no-value');
-            cell0.classList.add('tag-issue');
-        }
+        // Iterate thrugh each value (handling multiple occurrences of parameters).
+        val1Array.forEach((val1, index) => {
+            const val2 = val2Array[index] || 'Parameter missing';
+            const row = comparisonTable.insertRow(),
+                paramCell = row.insertCell(0);
+            
+            paramCell.textContent = key;
 
-        // Handle toggle case
-        if (toggle) {
-            const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
-            row.insertCell(2).textContent = displayVal2;
-            const cell2 = row.cells[2];
+            if (hasTooltip(key)) {
+                const tooltipIcon = document.createElement('span');
+                tooltipIcon.classList.add('tooltip');
+                tooltipIcon.innerHTML = `<small><strong>&#9432;</strong></small> <span class="tooltiptext">${getTooltipContent(key)}</span>`;
+                paramCell.appendChild(tooltipIcon);
+            }
 
-            if (isMandatory && (val2 === 'Value missing' || val2 === 'Parameter missing')) {
-                cell2.classList.add('mandatory');
-                if (val2 === 'Value missing') {
-                    cell2.innerText = 'Mandatory - value required';
-                    cell2.classList.remove('mandatory');
+            const displayVal1 = containsURLEncoded(val1) ? val1 : decodeURIComponent(val1);
+            row.insertCell(1).textContent = displayVal1;
+            const cell0 = row.cells[0],
+                cell1 = row.cells[1];
+
+            if (isDeprecated) {
+                row.classList.add('deprecated');
+            }
+
+            // Handle mising values.
+            if (isMandatory && val1 === 'Value missing') {
+                cell1.classList.add('no-value');
+                cell1.innerText = 'Mandatory - value required';
+                cell0.classList.add('mandatory');
+            }
+            if (isMandatory && val1 === 'Parameter missing') {
+                cell1.classList.add('no-parameter');
+                cell1.innerText = 'Mandatory - parameter missing';
+                cell0.classList.add('mandatory');
+            }
+            if (val1 === 'Value missing') {
+                cell1.classList.add('no-value');
+                cell0.classList.add('tag-issue');
+            }
+            if (key === '&') {
+                cell0.classList.add('no-value');
+                cell1.classList.add('no-value');
+            }
+
+            // Handle the second ad tag if toggle is enabled.
+            if (toggle) {
+                const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
+                row.insertCell(2).textContent = displayVal2;
+                const cell2 = row.cells[2];
+
+                if (isMandatory && (val2 === 'Value missing' || val2 === 'Parameter missing')) {
+                    cell2.classList.add('mandatory');
+                    cell2.innerText = val2 === 'Value missing' ? 'Mandatory - value required' : 'Mandatory - parameter missing';
+                }
+                if (key === '&') {
+                    cell0.classList.add('no-value');
+                    cell2.classList.add('no-value');
+                }
+
+                // highlight rows based on comparison.
+                if (val1 === val2 && val1 !== 'Parameter missing' && val1 !== 'Value missing') {
+                    cell1.classList.add('same');
+                    cell2.classList.add('same');
+                } else if (val1 === 'Parameter missing' && val2 === 'Value missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('no-parameter');
+                    cell2.classList.add('no-value');
+                } else if (val1 === 'Value missing' && val2 === 'Parameter missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('no-value');
+                    cell2.classList.add('no-parameter');
+                } else if (val1 === 'Value missing' && val2 === 'Value missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('no-value');
+                    cell2.classList.add('no-value');
+                } else if (val2 === 'Value missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('same');
+                    cell2.classList.add('no-value');
+                } else if (val2 === 'Parameter missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('same');
+                    cell2.classList.add('no-parameter');
+                } else if (val1 === 'Value missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('no-value');
+                    cell2.classList.add('same');
+                } else if (val1 === 'Parameter missing') {
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('no-parameter');
+                    cell2.classList.add('same');
                 } else {
-                    cell2.innerText = 'Mandatory - parameter missing';
+                    cell0.classList.add('tag-issue');
+                    cell1.classList.add('different');
+                    cell2.classList.add('different');
                 }
             }
-
-            // Handle comparison logic
-            if (val1 === val2 && val1 !== 'Parameter missing' && val1 !== 'Value missing') {
-                cell1.classList.add('same');
-                cell2.classList.add('same');
-            } else if (val1 === 'Parameter missing' && val2 === 'Value missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('no-parameter');
-                cell2.classList.add('no-value');
-            } else if (val1 === 'Value missing' && val2 === 'Parameter missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('no-value');
-                cell2.classList.add('no-parameter');
-            } else if (val1 === 'Value missing' && val2 === 'Value missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('no-value');
-                cell2.classList.add('no-value');
-            } else if (val2 === 'Value missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('same');
-                cell2.classList.add('no-value');
-            } else if (val2 === 'Parameter missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('same');
-                cell2.classList.add('no-parameter');
-            } else if (val1 === 'Value missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('no-value');
-                cell2.classList.add('same');
-            } else if (val1 === 'Parameter missing') {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('no-parameter');
-                cell2.classList.add('same');
-            } else {
-                cell0.classList.add('tag-issue');
-                cell1.classList.add('different');
-                cell2.classList.add('different');
-            }
-        }
+        });
     });
 
     saveState();
 };
-
 
 const getTooltipContent = (param) => {
     const tooltipData = parameterTooltips[param];
