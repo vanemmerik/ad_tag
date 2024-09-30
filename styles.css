@@ -2,6 +2,17 @@ body {
     font-family: Arial, sans-serif;
     margin: 20px;
 }
+
+.parameter{
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    background-color: #eeb302;
+    font-size: 18px;
+    color: #2b2b2b;
+    border-radius: 5px;
+    padding: 0 4px;
+}
+
 .input-container {
     display: flex;
     flex-wrap: wrap;
@@ -41,13 +52,17 @@ button {
     transition: background-color 0.3s ease;
 }
 
+button:hover {
+    background-color: #45a049;
+}
+
 #resetButton{
     background-color: #ffc107;
     color: #000;
 }
 
-button:hover {
-    background-color: #45a049;
+#resetButton:hover{
+    background-color: #eeb302;
 }
 
 #share_container{
@@ -67,7 +82,7 @@ button:hover {
 table {
     border-collapse: collapse;
     margin-top: 20px;
-    transition: width 0.4s ease;
+    /* transition: width 0.4s ease; */
 }
 th, td {
     border: 1px solid #ddd;
@@ -85,6 +100,7 @@ td:first-child {
 
 .tag-issue {
     background-color: #CCC;
+    color: #000;
 }
 
 .same{
@@ -94,6 +110,7 @@ td:first-child {
 
 .no-value, .deprecated{
     background-color: #ffc107;
+    color: #000;
 }
 
 .no-parameter, .mandatory{
@@ -159,7 +176,7 @@ td:first-child {
     right: 0;
     bottom: 0;
     background-color: #ccc;
-    transition: .4s;
+    transition: .3s;
     border-radius: 34px;
 }
 
@@ -171,7 +188,7 @@ td:first-child {
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: .3s;
     border-radius: 50%;
 }
 
