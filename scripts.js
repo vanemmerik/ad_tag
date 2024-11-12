@@ -26,6 +26,10 @@ const parseAdTag = (url) => {
             if (!key) {
                 return;
             }
+            if (placeholder(value)) {
+                params[key] = 'No value provided';
+                return;
+            }
             if (!params[key]) {
                 params[key] = value ? value : 'No value provided';
             } else {
@@ -38,6 +42,10 @@ const parseAdTag = (url) => {
 
 const containsWhiteSpace = (tag) => {
     return /\s/.test(tag);
+}
+
+const placeholder = (parameter) => {
+    return /\[.*?\]/g.test(parameter);
 }
 
 const duplicateParameters = (adTag) => {
@@ -274,7 +282,6 @@ const compareAdTags = () => {
         return;
     }
 
-    // Parse parameters
     const params1 = parseAdTag(adTag1);
     const params2 = toggle ? parseAdTag(adTag2) : {};
 
@@ -282,14 +289,12 @@ const compareAdTags = () => {
     const comparisonTable = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
     comparisonTable.innerHTML = '';
 
-    // Ensure mandatory parameters are checked
     for (const key in parameterTooltips) {
         if (parameterTooltips[key]?.mandatory) {
             allKeys.add(key);
         }
     }
 
-    // Iterate through all keys
     allKeys.forEach(key => {
         const isMandatory = parameterTooltips[key]?.mandatory;
         const isDeprecated = parameterTooltips[key]?.deprecated;
@@ -297,12 +302,10 @@ const compareAdTags = () => {
         let val1 = params1[key] || 'Parameter missing',
             val2 = params2[key] || (toggle ? 'Parameter missing' : '');
 
-        // Create a new row for comparison
         const row = comparisonTable.insertRow(),
             paramCell = row.insertCell(0);
         paramCell.textContent = key;
 
-        // Tooltip handling
         if (hasTooltip(key)) {
             const tooltipIcon = document.createElement('span');
             tooltipIcon.classList.add('tooltip');
@@ -310,12 +313,10 @@ const compareAdTags = () => {
             paramCell.appendChild(tooltipIcon);
         }
 
-        // Handle values and display them
         const displayVal1 = containsURLEncoded(val1) ? val1 : decodeURIComponent(val1);
         row.insertCell(1).textContent = displayVal1;
 
-        // Handle display of mandatory parameters
-        if (isMandatory && val1 === 'Parameter missing') {
+        if (isMandatory && val1 === 'Parameter missing')  {
             row.cells[1].classList.add('no-parameter');
             row.cells[1].innerHTML = `Mandatory - <code class="parameter">${key}</code> parameter missing`;
             paramCell.classList.add('mandatory');
@@ -335,7 +336,6 @@ const compareAdTags = () => {
             row.cells[1].innerHTML = `Random <code class="parameter">${key}</code> no <code class="parameter">parameter</code> or <code class="parameter">value</code> provided`;
         }
 
-        // Toggle case handling
         if (toggle) {
             const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
             row.insertCell(2).textContent = displayVal2;

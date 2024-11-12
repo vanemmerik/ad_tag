@@ -82,7 +82,25 @@ button:hover {
 table {
     border-collapse: collapse;
     margin-top: 20px;
-    table-layout: fixed;
+}
+
+#comparisonTable.one-tag {
+    width: 33%;
+}
+
+#comparisonTable.two-tags {
+    max-width: 66%;
+}
+
+td:first-child {
+    width: 1%;
+    max-width: 10%;
+    white-space: nowrap;
+}
+
+td:not(:first-child) {
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 
 th, td {
@@ -93,16 +111,6 @@ th, td {
 
 th {
     background-color: #f2f2f2;
-}
-
-td {
-    word-wrap: break-word;
-    white-space: normal;
-}
-
-td:first-child {
-    white-space: nowrap;
-    width: 1%;
 }
 
 .tag-issue {
@@ -210,14 +218,6 @@ input:checked + .slider:before {
 .toggle-label, .toggle-retain {
     margin: 2px 10px;
     font-weight: bold;
-}
-
-#comparisonTable.one-tag {
-    width: 33%;
-}
-
-#comparisonTable.two-tags {
-    width: 66%;
 }
 
 .tooltip {
