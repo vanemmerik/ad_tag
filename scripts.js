@@ -44,9 +44,12 @@ const containsWhiteSpace = (tag) => {
     return /\s/.test(tag);
 }
 
+// catch presence of [[]] or {{}} or {] or {{}} with no value.
 const placeholder = (parameter) => {
-    return /\[.*?\]/g.test(parameter);
-}
+    return (
+        /\[.*?\]|\{\{.*?\}\}|\{\}|\[.*|\{.*|\[.*?\}|\{.*?\]/g.test(parameter)
+    );
+};
 
 const duplicateParameters = (adTag) => {
     const queryString = adTag.split('?')[1];
