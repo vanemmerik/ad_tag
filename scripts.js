@@ -44,11 +44,11 @@ const containsWhiteSpace = (tag) => {
     return /\s/.test(tag);
 }
 
-// catch presence of [[]] or {{}} or {] or {{}} with no value.
+// catch presence of [[]] or {{}} or {] or {{}} or {} with no value.
 const placeholder = (parameter) => {
     return (
         /\[.*?\]|\{\}|{{.*?[^{].*}}|\[.*|\{.*|\[.*?\}|\{.*?\]/g.test(parameter) &&
-        !/\{\{[^{}]+\}\}/g.test(parameter)
+        !(/^\{\{[^{}]+\}\}$/g.test(parameter) || /^\{[^{}]+\}$/g.test(parameter))
     );
 };
 
