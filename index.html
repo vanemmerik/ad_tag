@@ -7,7 +7,9 @@
     <title>GAM Ad Tag Validation Tool</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+<body>
 <h2>GAM Ad Tag Validation Tool</h2>
+<p class="intro">Inspect or compare Google Ad Manager (GAM 360) video &amp; audio ad tags. Required parameters are evaluated against the detected serving context (client-side / CSAI vs server-side / SSAI).</p>
 <div class="toggle-container">
     <label class="switch">
         <input type="checkbox" id="retainToggle" onclick="saveState()">
@@ -41,6 +43,8 @@
     <a href="#" id="share_link" onclick="copyShareLink()">Share tag</a>
     <span class="alt tooltip"><small><strong>&#9432;</strong></small> <span class="tooltiptext">Copy ad tag comparison or inspection to a sharable URL</span></span>
 </div>
+<div id="summary" class="summary"></div>
+<div id="legend" class="legend"></div>
 <h3>Comparison Result:</h3>
 <table id="comparisonTable" class="one-tag">
     <thead>
@@ -54,7 +58,8 @@
     </tbody>
 </table>
 
-<script src="tooltips.js"></script>
+<script src="parameters.js"></script>
+<script src="adtag.js"></script>
 <script src="scripts.js"></script>
 
 </body>

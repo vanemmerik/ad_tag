@@ -1,184 +1,298 @@
+/*
+ * DOM glue for the GAM Ad Tag Validation Tool.
+ * All parsing / requirement logic lives in adtag.js (AdTag.*); this file only
+ * reads inputs, renders the table, summary and legend, and manages state.
+ */
 const alertBanner = document.querySelector('#alertBanner');
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     populateFromURL();
     loadState();
     document.getElementById('retainToggle').addEventListener('change', saveState);
 });
 
-const hasTooltip = (param) => {
-    return parameterTooltips.hasOwnProperty(param);
-}
+/* --- small helpers ------------------------------------------------------- */
 
-const parseAdTag = (url) => {
-    const queryString = url.split('?')[1];
-    if (!queryString) return {};
-
-    const params = {};
-    const pairs = queryString.split('&');
-
-    pairs.forEach(pair => {
-        if (!pair || !pair.includes('=')) {
-            params['&'] = params['&'] || [];
-            params['&'].push('No parameter or value provided');
-        } else {
-            const [key, value] = pair.split('=');
-            if (!key) {
-                return;
-            }
-            if (placeholder(value)) {
-                params[key] = 'No value provided';
-                return;
-            }
-            if (!params[key]) {
-                params[key] = value ? value : 'No value provided';
-            } else {
-                params[key] += `, ${value ? value : 'No value provided'}`;
-            }
-        }
-    });
-    return params;
+const flashBanner = (message, tone) => {
+    alertBanner.innerText = message;
+    alertBanner.classList.remove('amber');
+    if (tone === 'info') alertBanner.classList.add('amber');
+    alertBanner.classList.add('show');
+    clearTimeout(flashBanner._t);
+    flashBanner._t = setTimeout(() => alertBanner.classList.remove('show'), 4000);
 };
 
-const containsWhiteSpace = (tag) => {
-    return /\s/.test(tag);
-}
+const hasTooltip = (key) => Object.prototype.hasOwnProperty.call(AdTag.parameters, key);
 
-// catch presence of [[]] or {{}} or {] or {{}} or {} with no value.
-const placeholder = (parameter) => {
-    return (
-        /\[.*?\]|\{\}|{{.*?[^{].*}}|\[.*|\{.*|\[.*?\}|\{.*?\]/g.test(parameter) &&
-        !(/^\{\{[^{}]+\}\}$/g.test(parameter) || /^\{[^{}]+\}$/g.test(parameter))
-    );
-};
+const getTooltipContent = (key) => {
+    const data = AdTag.parameters[key];
+    if (!data) return '';
+    let body = (data.explanation || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    body = body.replace(/\n/g, '<br>');
+    body = body.replace(/```([^`]*?)```/g, '<code>$1</code>');
+    body = body.replace(/\*([^*]+?)\*/g, '<strong>$1</strong>');
 
-const duplicateParameters = (adTag) => {
-    const queryString = adTag.split('?')[1];
-    if (!queryString) return [];
-
-    const params = queryString.split('&');
-    const paramCounts = {};
-    const duplicates = [];
-
-    params.forEach(param => {
-        const key = param.split('=')[0];
-        if (paramCounts[key]) {
-            paramCounts[key]++;
-            if (paramCounts[key] === 2) {
-                duplicates.push(key);
-            }
-        } else {
-            paramCounts[key] = 1;
-        }
-    });
-
-    return duplicates;
-};
-
-const getAdType = (url) => {
-    const domain = new URL(url).hostname,
-        path = new URL(url).pathname,
-        isVOD = domain.includes("serverside"),
-        isLive = path.includes("/live/"),
-        isCSAI = domain.includes("securepubads.g.doubleclick.net") || domain.includes("pubads.g.doubleclick.net");
-    
-    if (isLive) {
-        return "Live SSAI";
-    } else if (isVOD) {
-        return "VOD SSAI";
-    } else if (isCSAI) {
-        return "CSAI";
+    let reqLine = '';
+    if (data.deprecated) {
+        reqLine = '<br><span class="req-tag req-deprecated">Deprecated</span>';
+    } else if (data.requirement) {
+        const level = data.requirement.level;
+        const label = {
+            required: 'Required',
+            programmatic: 'Required for programmatic',
+            recommended: 'Recommended',
+            conditional: 'Conditional',
+            optional: 'Optional'
+        }[level] || level;
+        reqLine = `<br><span class="req-tag req-${level}">${label}</span>`;
+        if (data.requirement.note) reqLine += `<br><em>${data.requirement.note}</em>`;
     }
-    return "Unknown Type";
-}
 
-const getAdNetwork = (url) => {
-    const queryString = url.split('?')[1],
-        urlParams = new URLSearchParams(queryString),
-        iu = urlParams.get('iu');
-    return iu ? iu.split('/')[1] : 'Unknown Network';
-}
+    return `<strong class="definition">${data.definition}</strong>${reqLine}<br>${body}`;
+};
 
-const isValidAdTag= (url) => {
-    const urlParams = new URLSearchParams(url.split('?')[1]);
-    return urlParams.has('iu') || urlParams.has('gdfp_req') || urlParams.get('output') === 'vast';
-}
+const paramCellHTML = (key) => {
+    const label = document.createTextNode(key);
+    const span = document.createElement('span');
+    span.appendChild(label);
+    if (hasTooltip(key)) {
+        const icon = document.createElement('span');
+        icon.classList.add('tooltip');
+        icon.innerHTML = `<small><strong>&#9432;</strong></small> <span class="tooltiptext">${getTooltipContent(key)}</span>`;
+        span.appendChild(icon);
+    }
+    return span;
+};
+
+/* --- context summary + legend ------------------------------------------- */
+
+const renderSummary = (ctx1, ctx2, twoTags) => {
+    const el = document.getElementById('summary');
+    if (!el) return;
+    const card = (ctx, n) => `
+        <div class="summary-card">
+            <div class="summary-title">${twoTags ? 'Ad Tag ' + n : 'Detected context'}</div>
+            <div><span class="summary-key">Type</span> ${ctx.adType}</div>
+            <div><span class="summary-key">Serving</span> ${ctx.servingMode === 'ssai' ? 'Server-side (SSAI)' : 'Client-side (CSAI)'}</div>
+            <div><span class="summary-key">Network code</span> ${ctx.networkCode || '—'}</div>
+            <div><span class="summary-key">Platform hint</span> ${ctx.platform}</div>
+        </div>`;
+    el.innerHTML = card(ctx1, 1) + (twoTags && ctx2 ? card(ctx2, 2) : '');
+    el.classList.add('show');
+};
+
+const renderLegend = () => {
+    const el = document.getElementById('legend');
+    if (!el || el.dataset.rendered) return;
+    el.innerHTML = `
+        <span class="legend-item"><span class="swatch sw-required"></span>Required for this context — missing or empty</span>
+        <span class="legend-item"><span class="swatch sw-recommended"></span>Recommended / conditional — review</span>
+        <span class="legend-item"><span class="swatch sw-ok"></span>Present &amp; valid</span>
+        <span class="legend-item"><span class="swatch sw-diff"></span>Differs between tags</span>`;
+    el.dataset.rendered = '1';
+    el.classList.add('show');
+};
+
+/* --- value rendering ----------------------------------------------------- */
+
+// value is the object produced by AdTag.parseAdTag for a key, or undefined.
+const describeValue = (key, value, servingMode) => {
+    const severity = AdTag.requirementSeverity(key, servingMode);
+
+    if (value === undefined) {
+        if (severity === 'required') {
+            return { cls: 'no-parameter', html: `Required — <code class="parameter">${key}</code> parameter missing` };
+        }
+        if (severity === 'programmatic') {
+            return { cls: 'no-value', html: `Required for programmatic — <code class="parameter">${key}</code> not present` };
+        }
+        if (severity === 'recommended') {
+            return { cls: 'no-value', html: `Recommended — <code class="parameter">${key}</code> not present` };
+        }
+        return { cls: '', html: 'Parameter missing' };
+    }
+
+    if (Array.isArray(value)) {
+        const vals = value.map((v) => v.raw !== undefined ? AdTag.safeDecode(v.raw) : '(no value)');
+        return { cls: 'no-value', html: `Duplicate parameter (${value.length}×): ${vals.join(', ')}` };
+    }
+
+    if (value.state === 'empty') {
+        const cls = severity === 'required' ? 'no-parameter' : 'no-value';
+        const lead = severity === 'required' ? 'Required — no' : 'No';
+        return { cls, html: `${lead} <code class="parameter">${key}</code> value provided` };
+    }
+
+    if (value.state === 'placeholder') {
+        return { cls: 'no-value', html: `Unresolved placeholder: <code class="parameter">${escapeHTML(value.raw)}</code>` };
+    }
+
+    // state === 'ok'
+    const decoded = escapeHTML(AdTag.safeDecode(value.raw));
+    const satisfied = ['required', 'programmatic', 'recommended'].includes(severity);
+    return { cls: satisfied ? 'ok' : '', html: decoded };
+};
+
+const escapeHTML = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* Decide the ordered key list: tag order first, then any missing expected. */
+const orderedKeys = (params1, params2, servingMode) => {
+    const present = [];
+    const seen = new Set();
+    const add = (k) => { if (!seen.has(k)) { seen.add(k); present.push(k); } };
+    Object.keys(params1).forEach(add);
+    Object.keys(params2).forEach(add);
+
+    // conditional pairing: if one of cmsid/vid is present, show its partner too
+    if (seen.has('cmsid') || seen.has('vid')) { add('cmsid'); add('vid'); }
+
+    const missing = AdTag.expectedKeysFor(servingMode)
+        .filter((k) => !seen.has(k))
+        .sort((a, b) => {
+            const rank = (k) => AdTag.requirementSeverity(k, servingMode) === 'required' ? 0 : 1;
+            return rank(a) - rank(b);
+        });
+
+    return present.concat(missing);
+};
+
+/* --- main action --------------------------------------------------------- */
+
+const compareAdTags = () => {
+    const adTag1 = document.getElementById('adTag1').value.trim();
+    const adTag2 = document.getElementById('adTag2').value.trim();
+    const twoTags = document.getElementById('tagToggle').checked;
+
+    if (!adTag1 || (twoTags && !adTag2)) {
+        flashBanner('Please enter a valid GAM ad tag');
+        return;
+    }
+    if (!AdTag.isValidAdTag(adTag1) || (twoTags && !AdTag.isValidAdTag(adTag2))) {
+        flashBanner('That does not look like a GAM ad tag (missing iu / gdfp_req / output=vast)');
+        return;
+    }
+    if (AdTag.containsWhiteSpace(adTag1) || (twoTags && AdTag.containsWhiteSpace(adTag2))) {
+        flashBanner('Ad tag contains whitespace — it will break when requested');
+        return;
+    }
+    alertBanner.classList.remove('show');
+
+    // Duplicates are surfaced as a non-blocking warning; we still render them.
+    const dupes1 = AdTag.duplicateParameters(adTag1);
+    const dupes2 = twoTags ? AdTag.duplicateParameters(adTag2) : [];
+    if (dupes1.length || dupes2.length) {
+        const parts = [];
+        if (dupes1.length) parts.push(`Tag 1: ${dupes1.join(', ')}`);
+        if (dupes2.length) parts.push(`Tag 2: ${dupes2.join(', ')}`);
+        flashBanner(`Duplicate parameters found — ${parts.join(' · ')}`, 'info');
+    }
+
+    const ctx1 = AdTag.detectContext(adTag1);
+    const ctx2 = twoTags ? AdTag.detectContext(adTag2) : null;
+    // In compare mode use tag 1's serving mode to decide requirements.
+    const servingMode = ctx1.servingMode;
+
+    const params1 = AdTag.parseAdTag(adTag1);
+    const params2 = twoTags ? AdTag.parseAdTag(adTag2) : {};
+
+    renderSummary(ctx1, ctx2, twoTags);
+    renderLegend();
+
+    const tbody = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = '';
+    document.querySelector('#adTag1Header').innerText = twoTags ? 'Ad Tag 1' : (ctx1.adType + ' tag');
+
+    orderedKeys(params1, params2, servingMode).forEach((key) => {
+        const row = tbody.insertRow();
+        row.insertCell(0).appendChild(paramCellHTML(key));
+
+        const d1 = describeValue(key, params1[key], servingMode);
+        const cell1 = row.insertCell(1);
+        cell1.innerHTML = d1.html;
+        if (d1.cls) cell1.classList.add(d1.cls);
+
+        if (twoTags) {
+            const d2 = describeValue(key, params2[key], servingMode);
+            const cell2 = row.insertCell(2);
+            cell2.innerHTML = d2.html;
+            if (d2.cls) cell2.classList.add(d2.cls);
+
+            // Highlight genuine value differences between two present values.
+            const v1 = params1[key], v2 = params2[key];
+            const bothOk = v1 && v2 && !Array.isArray(v1) && !Array.isArray(v2) &&
+                v1.state === 'ok' && v2.state === 'ok';
+            if (bothOk) {
+                if (v1.raw === v2.raw) {
+                    cell1.classList.add('same'); cell2.classList.add('same');
+                } else {
+                    cell1.classList.add('diff'); cell2.classList.add('diff');
+                }
+            }
+        }
+    });
+
+    saveState();
+};
+
+/* --- toggles / state ----------------------------------------------------- */
 
 const toggleTagInputs = () => {
-    const toggle = document.getElementById('tagToggle'),
-        adTag2Container = document.getElementById('adTag2Container'),
-        adTag2Header = document.getElementById('adTag2Header'),
-        toggleLabel = document.getElementById('toggleLabel'),
-        comparisonTable = document.getElementById('comparisonTable'),
-        actionButton = document.getElementById('actionButton');
-    
-    if (toggle.checked) {
+    const toggle = document.getElementById('tagToggle').checked;
+    const adTag2Container = document.getElementById('adTag2Container');
+    const adTag2Header = document.getElementById('adTag2Header');
+    const toggleLabel = document.getElementById('toggleLabel');
+    const table = document.getElementById('comparisonTable');
+    const actionButton = document.getElementById('actionButton');
+
+    if (toggle) {
         adTag2Container.classList.remove('hidden');
         adTag2Header.classList.remove('hidden');
-        toggleLabel.innerText = "Inspect single ad tag";
-        comparisonTable.classList.remove('one-tag');
-        comparisonTable.classList.add('two-tags');
-        actionButton.innerText = "Compare Ad Tags";
+        toggleLabel.innerText = 'Inspect single ad tag';
+        table.classList.remove('one-tag');
+        table.classList.add('two-tags');
+        actionButton.innerText = 'Compare Ad Tags';
     } else {
         adTag2Container.classList.add('hidden');
         adTag2Header.classList.add('hidden');
-        toggleLabel.innerText = "Compare two ad tags";
-        comparisonTable.classList.remove('two-tags');
-        comparisonTable.classList.add('one-tag');
-        actionButton.innerText = "Inspect Ad Tag";
-        
-        document.getElementById('adTag2Header').classList.add('hidden');
-        const rows = document.querySelectorAll('#comparisonTable tbody tr');
-        rows.forEach(row => {
-            if (row.cells.length === 3) {
-                row.deleteCell(2);
-            }
+        toggleLabel.innerText = 'Compare two ad tags';
+        table.classList.remove('two-tags');
+        table.classList.add('one-tag');
+        actionButton.innerText = 'Inspect Ad Tag';
+        document.querySelectorAll('#comparisonTable tbody tr').forEach((r) => {
+            if (r.cells.length === 3) r.deleteCell(2);
         });
-    }
-    // compareAdTags();
-}
-
-const saveState = () => {
-    const retainToggle = document.getElementById('retainToggle').checked,
-        adTag1 = document.getElementById('adTag1').value,
-        adTag2 = document.getElementById('adTag2').value,
-        tagToggle = document.getElementById('tagToggle').checked;
-
-    if (retainToggle) {
-        localStorage.setItem('adTag1', adTag1);
-        localStorage.setItem('adTag2', adTag2);
-        localStorage.setItem('tagToggle', tagToggle);
-        localStorage.setItem('retainToggle', retainToggle);
     }
 };
 
-const clearURLQueryParams = () => {
-    const urlWithoutQuery = window.location.protocol + "//" + window.location.host + window.location.pathname;
-    window.history.replaceState({}, document.title, urlWithoutQuery);
+const saveState = () => {
+    if (!document.getElementById('retainToggle').checked) return;
+    localStorage.setItem('adTag1', document.getElementById('adTag1').value);
+    localStorage.setItem('adTag2', document.getElementById('adTag2').value);
+    localStorage.setItem('tagToggle', document.getElementById('tagToggle').checked);
+    localStorage.setItem('retainToggle', true);
 };
 
 const loadState = () => {
-    const retainToggle = localStorage.getItem('retainToggle') === 'true';
-    if (retainToggle) {
-        const adTag1 = localStorage.getItem('adTag1'),
-            adTag2 = localStorage.getItem('adTag2'),
-            tagToggle = localStorage.getItem('tagToggle') === 'true';
+    if (localStorage.getItem('retainToggle') !== 'true') return;
+    document.getElementById('retainToggle').checked = true;
+    document.getElementById('adTag1').value = localStorage.getItem('adTag1') || '';
+    document.getElementById('adTag2').value = localStorage.getItem('adTag2') || '';
+    document.getElementById('tagToggle').checked = localStorage.getItem('tagToggle') === 'true';
+    toggleTagInputs();
+    if (document.getElementById('adTag1').value) compareAdTags();
+};
 
-        document.getElementById('retainToggle').checked = retainToggle;
-        document.getElementById('adTag1').value = adTag1 || '';
-        document.getElementById('adTag2').value = adTag2 || '';
-        document.getElementById('tagToggle').checked = tagToggle;
-
-        toggleTagInputs();
-        compareAdTags();
-    }
+const clearURLQueryParams = () => {
+    const clean = window.location.protocol + '//' + window.location.host + window.location.pathname;
+    window.history.replaceState({}, document.title, clean);
 };
 
 const clearState = () => {
-    localStorage.removeItem('adTag1');
-    localStorage.removeItem('adTag2');
-    localStorage.removeItem('tagToggle');
-    localStorage.removeItem('retainToggle');
+    ['adTag1', 'adTag2', 'tagToggle', 'retainToggle'].forEach((k) => localStorage.removeItem(k));
     document.getElementById('adTag1').value = '';
     document.getElementById('adTag2').value = '';
     document.getElementById('tagToggle').checked = false;
@@ -187,189 +301,30 @@ const clearState = () => {
     alertBanner.classList.remove('show');
     clearURLQueryParams();
     toggleTagInputs();
-    const comparisonTable = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
-    comparisonTable.innerHTML = '';
-
+    document.getElementById('comparisonTable').getElementsByTagName('tbody')[0].innerHTML = '';
+    const summary = document.getElementById('summary');
+    if (summary) { summary.innerHTML = ''; summary.classList.remove('show'); }
 };
+
 const populateFromURL = () => {
     const params = new URLSearchParams(window.location.search);
+    // URLSearchParams already decodes once; do NOT decodeURIComponent again —
+    // a second pass throws on tags containing macros like %%CMS_ID%%.
     const adTag1 = params.get('adTag1');
     const adTag2 = params.get('adTag2');
-
-    if (adTag1) {
-        document.getElementById('adTag1').value = decodeURIComponent(adTag1);
-    }
+    if (adTag1) document.getElementById('adTag1').value = adTag1;
     if (adTag2) {
-        document.getElementById('adTag2').value = decodeURIComponent(adTag2);
+        document.getElementById('adTag2').value = adTag2;
         document.getElementById('tagToggle').checked = true;
         toggleTagInputs();
     }
-
-    if (adTag1 || adTag2) {
-        compareAdTags();
-    }
+    if (adTag1 || adTag2) compareAdTags();
 };
-
-const resetAdTags = () => {
-    document.getElementById('adTag1').value = '';
-    document.getElementById('adTag2').value = '';
-    localStorage.removeItem('adTag1');
-    localStorage.removeItem('adTag2');
-}
 
 const copyShareLink = () => {
-    const adTag1 = encodeURIComponent(document.getElementById('adTag1').value),
-        adTag2 = encodeURIComponent(document.getElementById('adTag2').value),
-        url = `${window.location.origin}${window.location.pathname}?adTag1=${adTag1}&adTag2=${adTag2}`;
+    const adTag1 = encodeURIComponent(document.getElementById('adTag1').value);
+    const adTag2 = encodeURIComponent(document.getElementById('adTag2').value);
+    const url = `${window.location.origin}${window.location.pathname}?adTag1=${adTag1}&adTag2=${adTag2}`;
     navigator.clipboard.writeText(url);
-    alertBanner.innerText = 'Link copied to clipboard';
-    alertBanner.classList.add('show', 'amber');
-    setTimeout(() => {
-        alertBanner.classList.remove('show');
-    }, 3000);
-}
-
-const containsURLEncoded = (value) => {
-    if (typeof value !== 'string') {
-        return false;
-    }
-    
-    const regex = /%[0-9A-Fa-f]{2}/g;
-    const matches = value.match(regex);
-    
-    return matches !== null;
+    flashBanner('Link copied to clipboard', 'info');
 };
-
-const compareAdTags = () => {
-    const adTag1 = document.getElementById('adTag1').value;
-    const adTag2 = document.getElementById('adTag2').value;
-    const toggle = document.getElementById('tagToggle').checked;
-
-    // Validate ad tags
-    if (!adTag1 || (toggle && !adTag2) || !isValidAdTag(adTag1) || (toggle && !isValidAdTag(adTag2))) {
-        alertBanner.classList.add('show');
-        alertBanner.classList.remove('amber');
-        alertBanner.innerText = 'Please enter a valid GAM ad tag';
-        setTimeout(() => {
-            alertBanner.classList.remove('show');
-        }, 3000);
-        return;
-    } else if (containsWhiteSpace(adTag1) || (toggle && containsWhiteSpace(adTag2))) {
-        alertBanner.classList.add('show');
-        alertBanner.classList.remove('amber');
-        alertBanner.innerText = 'Ad tag contains whitespace';
-        setTimeout(() => {
-            alertBanner.classList.remove('show');
-        }, 3000);
-        return;
-    } else {
-        alertBanner.classList.remove('show');
-    }
-
-    // Check for duplicate parameters
-    const duplicates1 = duplicateParameters(adTag1);
-    const duplicates2 = toggle ? duplicateParameters(adTag2) : [];
-    if (duplicates1.length > 0) {
-        alertBanner.classList.add('show');
-        alertBanner.innerText = `Duplicate parameters found in Ad Tag 1: ${duplicates1.join(', ')}`;
-        setTimeout(() => {
-            alertBanner.classList.remove('show');
-        }, 3000);
-        return;
-    }
-    if (duplicates2.length > 0) {
-        alertBanner.classList.add('show');
-        alertBanner.innerText = `Duplicate parameters found in Ad Tag 2: ${duplicates2.join(', ')}`;
-        setTimeout(() => {
-            alertBanner.classList.remove('show');
-        }, 3000);
-        return;
-    }
-
-    const params1 = parseAdTag(adTag1);
-    const params2 = toggle ? parseAdTag(adTag2) : {};
-
-    const allKeys = new Set([...Object.keys(params1), ...Object.keys(params2)]);
-    const comparisonTable = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
-    comparisonTable.innerHTML = '';
-
-    for (const key in parameterTooltips) {
-        if (parameterTooltips[key]?.mandatory) {
-            allKeys.add(key);
-        }
-    }
-
-    allKeys.forEach(key => {
-        const isMandatory = parameterTooltips[key]?.mandatory;
-        const isDeprecated = parameterTooltips[key]?.deprecated;
-
-        let val1 = params1[key] || 'Parameter missing',
-            val2 = params2[key] || (toggle ? 'Parameter missing' : '');
-
-        const row = comparisonTable.insertRow(),
-            paramCell = row.insertCell(0);
-        paramCell.textContent = key;
-
-        if (hasTooltip(key)) {
-            const tooltipIcon = document.createElement('span');
-            tooltipIcon.classList.add('tooltip');
-            tooltipIcon.innerHTML = `<small><strong>&#9432;</strong></small> <span class="tooltiptext">${getTooltipContent(key)}</span>`;
-            paramCell.appendChild(tooltipIcon);
-        }
-
-        const displayVal1 = containsURLEncoded(val1) ? val1 : decodeURIComponent(val1);
-        row.insertCell(1).textContent = displayVal1;
-
-        if (isMandatory && val1 === 'Parameter missing')  {
-            row.cells[1].classList.add('no-parameter');
-            row.cells[1].innerHTML = `Mandatory - <code class="parameter">${key}</code> parameter missing`;
-            paramCell.classList.add('mandatory');
-        }
-        else if (isMandatory && val1 === 'No value provided'){
-            console.log(isMandatory, val1);
-            paramCell.classList.add('mandatory');
-            row.cells[1].classList.add('no-parameter');
-            row.cells[1].innerHTML = `Mandatory - No <code class="parameter">${key}</code> value provided`;
-        }
-        else if (val1 === 'No value provided'){
-            console.log(isMandatory, val1);
-            row.cells[1].innerHTML = `No <code class="parameter">${key}</code> value provided`;
-        }
-        else if(key === '&'){
-            paramCell.classList.add('no-value');
-            row.cells[1].innerHTML = `Random <code class="parameter">${key}</code> no <code class="parameter">parameter</code> or <code class="parameter">value</code> provided`;
-        }
-
-        if (toggle) {
-            const displayVal2 = containsURLEncoded(val2) ? val2 : decodeURIComponent(val2);
-            row.insertCell(2).textContent = displayVal2;
-            if (isMandatory && (val2 === 'Value missing' || val2 === 'Parameter missing' || val2 === `No value provided`)) {
-                row.cells[2].classList.add('mandatory');
-                row.cells[0].classList.add('mandatory');
-                row.cells[2].innerHTML = val2 === 'Value missing' ? `Mandatory - <code class="parameter">${key}</code> value required` :  `Value for <code class="parameter">${key}</code> has not been provided`;
-            } else if (!(key in params2)) {
-                // console.log(`Key '${key}' is present in Ad Tag 1 but missing in Ad Tag 2.`);
-                row.cells[2].innerHTML = `This tag does not feature the <code class="parameter">${key}</code> parameter`
-             } else if (val1 === 'Value missing' && val2 !== 'Value missing') {
-                //console.log(`Key ${key} is missing in Ad Tag 1 but has a value in Ad Tag 2: ${val2}`);
-                row.cells[2].innerHTML = `The <code class="parameter">${key}</code> parameter is present in Ad Tag 2 with value: <strong>${val2}</strong>`;
-            } else if (val2 === 'Value missing' || val2 === 'Parameter missing' || val2 === `No value provided`) {
-                row.cells[2].innerHTML = val2 === 'Value missing' ? `Mandatory - <code class="parameter">${key}</code> value required` :  `Value for <code class="parameter">${key}</code> has not been provided`;
-            }
-        }
-    });
-
-    saveState();
-};
-
-const getTooltipContent = (param) => {
-    const tooltipData = parameterTooltips[param];
-    if (tooltipData) {
-        let explanationWithFormatting = tooltipData.explination.replace(/\n/g, '<br>');
-        explanationWithFormatting = explanationWithFormatting.replace(/```(.*?)```/g, '<code>$1</code>');
-        explanationWithFormatting = explanationWithFormatting.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
-        const content = `<strong class="definition">${tooltipData.definition}</strong><br>${explanationWithFormatting}`;
-        return content;
-    }
-    return '';
-}
