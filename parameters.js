@@ -70,8 +70,7 @@ const adTagParameters = {
         "explanation": "The size parameter accepts a variable value set to the size of the master video ad slot. Separate multiple sizes with a pipe (```|```) character. Do not include ```v``` after the size.\n\nUsage example:\n```sz=400x300```\n\nMulti-size:\n```sz=400x300|640x480```\n\nThis parameter is optional if only requesting ```ad_type=audio```.",
         "requirement": {
             "level": "required",
-            "appliesTo": ["csai"],
-            "note": "Required to implement ad serving in web, mobile apps, connected TV, and digital out-of-home. In server-side (SSAI) pod serving the slot size is often supplied out-of-band."
+            "note": "Required to implement ad serving in web, mobile apps, connected TV, and digital out-of-home, including server-side (SSAI) requests."
         }
     },
     "correlator": {
