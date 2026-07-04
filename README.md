@@ -100,4 +100,13 @@ Only `required` and `programmatic` parameters are auto-shown when missing (so th
 
 ## Deployment
 
-Static files deployed to `solutions.brightcove.com/jvanemmerik/ad_tag/`. Deploy by syncing the repository contents (excluding `.git`, `test/`, and dot-files) to the web root.
+Static files are deployed to `solutions.brightcove.com/jvanemmerik/ad_tag/` (`/mnt/data/html/jvanemmerik/ad_tag`). Requires the Brightcove VPN.
+
+Use `deploy.sh`, which rsyncs the web files and mirrors the folder (removing stale files) while excluding dev-only files:
+
+```bash
+./deploy.sh          # dry run — preview what would change
+./deploy.sh --live   # deploy for real
+```
+
+rsync/ssh prompts for the password in your terminal; add your SSH key to the server's `~/.ssh/authorized_keys` for a promptless deploy. Alternatively, upload the web files (`index.html`, `styles.css`, `scripts.js`, `parameters.js`, `adtag.js`) via SFTP with FileZilla.
