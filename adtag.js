@@ -39,16 +39,30 @@
     };
 
     /*
-     * Detect an unresolved macro / placeholder that was never filled in, e.g.
-     * "[value]", "{}", "%%CMS_ID%%" left literally, empty "{{}}".
+     * Detect a malformed curly-brace macro. GAM / Brightcove SSAI macros use
+     * DOUBLE curly braces, e.g. "{{url.givn}}", "{{metadata.video_id}}".
+     * A single brace ("{url.givn}") or an unbalanced pair
+     * ("{{system.xfp.correlator}") will not be substituted server-side and is
+     * therefore invalid.
      *
-     * A *resolved* templating token such as "{{url.givn}}" or "{correlator}"
-     * is legitimate for SSAI tags and is NOT treated as a placeholder.
+     * Strategy: remove every well-formed {{...}} macro, then any curly brace
+     * left over is malformed. This also catches bad macros embedded inside a
+     * compound value such as cust_params.
+     */
+    const hasMalformedMacro = (value) => {
+        if (typeof value !== 'string' || value === '') return false;
+        const stripped = value.replace(/\{\{[^{}]*\}\}/g, '');
+        return /[{}]/.test(stripped);
+    };
+
+    /*
+     * Detect an unresolved placeholder that was never filled in, e.g.
+     * "[value]", empty "{}"/"{{}}", or a literal "%%CMS_ID%%" macro.
+     * Malformed curly-brace macros are handled separately by
+     * hasMalformedMacro; a correctly-formed "{{macro}}" is NOT a placeholder.
      */
     const isPlaceholder = (value) => {
         if (typeof value !== 'string' || value === '') return false;
-        // A single well-formed {{macro}} or {macro} token is a valid SSAI macro.
-        if (/^\{\{[^{}]+\}\}$/.test(value) || /^\{[^{}]+\}$/.test(value)) return false;
         return (
             /\[[^\]]*\]/.test(value) ||   // [value] style
             /\{\}/.test(value) ||          // empty {}
@@ -77,6 +91,8 @@
             let value;
             if (raw === '') {
                 value = { state: 'empty' };
+            } else if (hasMalformedMacro(raw)) {
+                value = { state: 'invalid_macro', raw };
             } else if (isPlaceholder(raw)) {
                 value = { state: 'placeholder', raw };
             } else {
@@ -207,6 +223,7 @@
         queryStringOf,
         safeDecode,
         isPlaceholder,
+        hasMalformedMacro,
         parseAdTag,
         duplicateParameters,
         containsWhiteSpace,

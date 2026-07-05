@@ -88,7 +88,7 @@ const renderLegend = () => {
     const el = document.getElementById('legend');
     if (!el || el.dataset.rendered) return;
     el.innerHTML = `
-        <span class="legend-item"><span class="swatch sw-required"></span>Required for this context — missing or empty</span>
+        <span class="legend-item"><span class="swatch sw-required"></span>Required / invalid — missing, empty or malformed macro</span>
         <span class="legend-item"><span class="swatch sw-recommended"></span>Recommended / conditional — review</span>
         <span class="legend-item"><span class="swatch sw-ok"></span>Present &amp; valid</span>
         <span class="legend-item"><span class="swatch sw-diff"></span>Differs between tags</span>`;
@@ -99,10 +99,18 @@ const renderLegend = () => {
 /* --- value rendering ----------------------------------------------------- */
 
 // value is the object produced by AdTag.parseAdTag for a key, or undefined.
-const describeValue = (key, value, servingMode) => {
+// siblings is the parsed param map for the same tag (for cross-param checks).
+const describeValue = (key, value, servingMode, siblings) => {
     const severity = AdTag.requirementSeverity(key, servingMode);
 
     if (value === undefined) {
+        // Content targeting requires cmsid + vid together.
+        if (key === 'cmsid' && siblings && siblings.vid) {
+            return { cls: 'no-value', html: `Missing — <code class="parameter">cmsid</code> is required alongside <code class="parameter">vid</code> for content targeting` };
+        }
+        if (key === 'vid' && siblings && siblings.cmsid) {
+            return { cls: 'no-value', html: `Missing — <code class="parameter">vid</code> is required alongside <code class="parameter">cmsid</code> for content targeting` };
+        }
         if (severity === 'required') {
             return { cls: 'no-parameter', html: `Required — <code class="parameter">${key}</code> parameter missing` };
         }
@@ -117,13 +125,17 @@ const describeValue = (key, value, servingMode) => {
 
     if (Array.isArray(value)) {
         const vals = value.map((v) => v.raw !== undefined ? AdTag.safeDecode(v.raw) : '(no value)');
-        return { cls: 'no-value', html: `Duplicate parameter (${value.length}×): ${vals.join(', ')}` };
+        return { cls: 'no-value', html: `Duplicate parameter (${value.length}×): ${escapeHTML(vals.join(', '))}` };
     }
 
     if (value.state === 'empty') {
         const cls = severity === 'required' ? 'no-parameter' : 'no-value';
         const lead = severity === 'required' ? 'Required — no' : 'No';
         return { cls, html: `${lead} <code class="parameter">${key}</code> value provided` };
+    }
+
+    if (value.state === 'invalid_macro') {
+        return { cls: 'invalid', html: `Invalid macro syntax — expected <code class="parameter">{{macro}}</code> (double braces): <code class="parameter">${escapeHTML(value.raw)}</code>` };
     }
 
     if (value.state === 'placeholder') {
@@ -210,13 +222,13 @@ const compareAdTags = () => {
         const row = tbody.insertRow();
         row.insertCell(0).appendChild(paramCellHTML(key));
 
-        const d1 = describeValue(key, params1[key], servingMode);
+        const d1 = describeValue(key, params1[key], servingMode, params1);
         const cell1 = row.insertCell(1);
         cell1.innerHTML = d1.html;
         if (d1.cls) cell1.classList.add(d1.cls);
 
         if (twoTags) {
-            const d2 = describeValue(key, params2[key], servingMode);
+            const d2 = describeValue(key, params2[key], servingMode, params2);
             const cell2 = row.insertCell(2);
             cell2.innerHTML = d2.html;
             if (d2.cls) cell2.classList.add(d2.cls);

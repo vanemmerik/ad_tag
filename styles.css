@@ -208,7 +208,7 @@ th {
     color: #000;
 }
 
-.no-parameter, .mandatory{
+.no-parameter, .mandatory, .invalid{
     background-color: #f44336;
     color: #FFF;
 }
