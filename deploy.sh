@@ -21,6 +21,7 @@ set -euo pipefail
 REMOTE_USER="jvanemmerik"
 REMOTE_HOST="solutions.brightcove.com"
 REMOTE_DIR="/mnt/data/html/jvanemmerik/ad_tag"
+REMOTE_PORT="${REMOTE_PORT:-22}"   # override if FileZilla uses a custom port
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -56,7 +57,9 @@ trap 'rm -f "$BATCH"' EXIT
 } > "$BATCH"
 
 echo "== LIVE DEPLOY via sftp =="
-sftp -b "$BATCH" "${REMOTE_USER}@${REMOTE_HOST}"
+# -o BatchMode=no is REQUIRED: sftp -b otherwise sets BatchMode=yes, which
+# disables the password prompt and only allows key auth.
+sftp -o BatchMode=no -P "${REMOTE_PORT}" -b "$BATCH" "${REMOTE_USER}@${REMOTE_HOST}"
 
 echo
 echo "Done. Hard-refresh https://${REMOTE_HOST}/jvanemmerik/ad_tag/ to verify."
