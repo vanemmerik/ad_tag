@@ -50,30 +50,37 @@ test('isPlaceholder allows valid values / macros', () => {
     assert.strictEqual(AdTag.isPlaceholder(''), false);
 });
 
-// --- macro brace validation ---------------------------------------------
-test('hasMalformedMacro accepts well-formed double-brace macros', () => {
-    assert.strictEqual(AdTag.hasMalformedMacro('{{url.givn}}'), false);
-    assert.strictEqual(AdTag.hasMalformedMacro('{{metadata.video_id}}'), false);
-    assert.strictEqual(AdTag.hasMalformedMacro('640x480'), false);
-    assert.strictEqual(AdTag.hasMalformedMacro('a={{x}}&b={{y}}'), false);
+// --- macro brace validation (context-aware) ------------------------------
+test('SSAI: double-brace macros valid, single/unbalanced invalid', () => {
+    assert.strictEqual(AdTag.hasMalformedMacro('{{url.givn}}', 'ssai'), false);
+    assert.strictEqual(AdTag.hasMalformedMacro('a={{x}}&b={{y}}', 'ssai'), false);
+    assert.strictEqual(AdTag.hasMalformedMacro('{url.givn}', 'ssai'), true);            // single brace
+    assert.strictEqual(AdTag.hasMalformedMacro('{{system.xfp.correlator}', 'ssai'), true); // missing brace
+    assert.strictEqual(AdTag.hasMalformedMacro('{metadata.custom_fields.genre}}', 'ssai'), true);
 });
 
-test('hasMalformedMacro flags single or unbalanced braces', () => {
-    assert.strictEqual(AdTag.hasMalformedMacro('{url.givn}'), true);          // single brace
-    assert.strictEqual(AdTag.hasMalformedMacro('{{system.xfp.correlator}'), true); // missing brace
-    assert.strictEqual(AdTag.hasMalformedMacro('{metadata.custom_fields.genre}}'), true);
+test('CSAI: single-brace macros valid, only imbalance invalid', () => {
+    assert.strictEqual(AdTag.hasMalformedMacro('{random}', 'csai'), false);
+    assert.strictEqual(AdTag.hasMalformedMacro('{mediainfo.id}', 'csai'), false);
+    assert.strictEqual(AdTag.hasMalformedMacro('{{system.xfp.correlator}}', 'csai'), false); // tolerated
+    assert.strictEqual(AdTag.hasMalformedMacro('{random', 'csai'), true);   // unbalanced
+    assert.strictEqual(AdTag.hasMalformedMacro('{{x}', 'csai'), true);      // unbalanced
 });
 
-test('hasMalformedMacro catches bad macro inside a compound value', () => {
+test('SSAI: bad macro inside a compound cust_params value', () => {
     const custParams = 'env=testcsai&content_id={{metadata.video_id}}&content_genre={metadata.custom_fields.genre}}';
-    assert.strictEqual(AdTag.hasMalformedMacro(custParams), true);
+    assert.strictEqual(AdTag.hasMalformedMacro(custParams, 'ssai'), true);
 });
 
-test('parseAdTag marks malformed macros as invalid_macro', () => {
-    const p = AdTag.parseAdTag('https://x/ads?givn={url.givn}&vid={{metadata.video_id}}&correlator={{sys}');
-    assert.strictEqual(p.givn.state, 'invalid_macro');
-    assert.strictEqual(p.vid.state, 'ok');
-    assert.strictEqual(p.correlator.state, 'invalid_macro');
+test('parseAdTag applies serving-mode-specific macro rules', () => {
+    const ssai = AdTag.parseAdTag('https://x/ads?givn={url.givn}&vid={{metadata.video_id}}&correlator={{sys}', 'ssai');
+    assert.strictEqual(ssai.givn.state, 'invalid_macro');
+    assert.strictEqual(ssai.vid.state, 'ok');
+    assert.strictEqual(ssai.correlator.state, 'invalid_macro');
+
+    const csai = AdTag.parseAdTag('https://x/ads?correlator={random}&foo={bad', 'csai');
+    assert.strictEqual(csai.correlator.state, 'ok');       // single brace fine for CSAI
+    assert.strictEqual(csai.foo.state, 'invalid_macro');   // unbalanced still caught
 });
 
 // --- duplicates ----------------------------------------------------------

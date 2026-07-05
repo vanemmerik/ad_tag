@@ -39,20 +39,39 @@
     };
 
     /*
-     * Detect a malformed curly-brace macro. GAM / Brightcove SSAI macros use
-     * DOUBLE curly braces, e.g. "{{url.givn}}", "{{metadata.video_id}}".
-     * A single brace ("{url.givn}") or an unbalanced pair
-     * ("{{system.xfp.correlator}") will not be substituted server-side and is
-     * therefore invalid.
+     * Detect a malformed curly-brace macro. The valid syntax differs by
+     * serving mode:
      *
-     * Strategy: remove every well-formed {{...}} macro, then any curly brace
-     * left over is malformed. This also catches bad macros embedded inside a
-     * compound value such as cust_params.
+     *   SSAI (server-side): DOUBLE braces, e.g. "{{url.givn}}",
+     *        "{{system.xfp.correlator}}". A single brace ("{url.givn}") or an
+     *        unbalanced pair ("{{system.xfp.correlator}") will not be
+     *        substituted by the stitching service and is invalid. Strategy:
+     *        strip every well-formed {{...}} macro, then any leftover brace is
+     *        malformed. This also catches bad macros inside a compound value
+     *        such as cust_params.
+     *
+     *   CSAI (client-side / Brightcove player): SINGLE braces, e.g.
+     *        "{random}", "{mediainfo.id}", "{player.id}". Single braces are
+     *        valid here, so we only flag genuinely unbalanced braces (a
+     *        double-brace macro is tolerated rather than flagged).
+     *
+     * servingMode defaults to the lenient CSAI rule when unknown.
      */
-    const hasMalformedMacro = (value) => {
+    const hasMalformedMacro = (value, servingMode) => {
         if (typeof value !== 'string' || value === '') return false;
-        const stripped = value.replace(/\{\{[^{}]*\}\}/g, '');
-        return /[{}]/.test(stripped);
+
+        if (servingMode === 'ssai') {
+            const stripped = value.replace(/\{\{[^{}]*\}\}/g, '');
+            return /[{}]/.test(stripped);
+        }
+
+        // CSAI / unknown: single braces are legitimate — flag only imbalance.
+        let depth = 0;
+        for (const ch of value) {
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth < 0) return true; }
+        }
+        return depth !== 0;
     };
 
     /*
@@ -76,7 +95,7 @@
      * Splits each pair only on the FIRST '=' so base64 / encoded values that
      * themselves contain '=' (ppsj, cust_params) survive intact.
      */
-    const parseAdTag = (url) => {
+    const parseAdTag = (url, servingMode) => {
         const qs = queryStringOf(url);
         if (!qs) return {};
 
@@ -91,7 +110,7 @@
             let value;
             if (raw === '') {
                 value = { state: 'empty' };
-            } else if (hasMalformedMacro(raw)) {
+            } else if (hasMalformedMacro(raw, servingMode)) {
                 value = { state: 'invalid_macro', raw };
             } else if (isPlaceholder(raw)) {
                 value = { state: 'placeholder', raw };

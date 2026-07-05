@@ -135,7 +135,10 @@ const describeValue = (key, value, servingMode, siblings) => {
     }
 
     if (value.state === 'invalid_macro') {
-        return { cls: 'invalid', html: `Invalid macro syntax — expected <code class="parameter">{{macro}}</code> (double braces): <code class="parameter">${escapeHTML(value.raw)}</code>` };
+        const hint = servingMode === 'ssai'
+            ? 'SSAI macros need double braces <code class="parameter">{{macro}}</code>'
+            : 'unbalanced braces';
+        return { cls: 'invalid', html: `Invalid macro syntax (${hint}): <code class="parameter">${escapeHTML(value.raw)}</code>` };
     }
 
     if (value.state === 'placeholder') {
@@ -205,11 +208,14 @@ const compareAdTags = () => {
 
     const ctx1 = AdTag.detectContext(adTag1);
     const ctx2 = twoTags ? AdTag.detectContext(adTag2) : null;
-    // In compare mode use tag 1's serving mode to decide requirements.
+    // In compare mode use tag 1's serving mode to decide the row set.
     const servingMode = ctx1.servingMode;
+    const mode2 = ctx2 ? ctx2.servingMode : servingMode;
 
-    const params1 = AdTag.parseAdTag(adTag1);
-    const params2 = twoTags ? AdTag.parseAdTag(adTag2) : {};
+    // Parse each tag with its own serving mode so macro syntax (single-brace
+    // CSAI vs double-brace SSAI) is validated correctly per tag.
+    const params1 = AdTag.parseAdTag(adTag1, servingMode);
+    const params2 = twoTags ? AdTag.parseAdTag(adTag2, mode2) : {};
 
     renderSummary(ctx1, ctx2, twoTags);
     renderLegend();
@@ -228,7 +234,7 @@ const compareAdTags = () => {
         if (d1.cls) cell1.classList.add(d1.cls);
 
         if (twoTags) {
-            const d2 = describeValue(key, params2[key], servingMode, params2);
+            const d2 = describeValue(key, params2[key], mode2, params2);
             const cell2 = row.insertCell(2);
             cell2.innerHTML = d2.html;
             if (d2.cls) cell2.classList.add(d2.cls);
