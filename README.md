@@ -102,11 +102,11 @@ Only `required` and `programmatic` parameters are auto-shown when missing (so th
 
 Static files are deployed to `solutions.brightcove.com/jvanemmerik/ad_tag/` (`/mnt/data/html/jvanemmerik/ad_tag`). Requires the Brightcove VPN.
 
-Use `deploy.sh`, which rsyncs the web files and mirrors the folder (removing stale files) while excluding dev-only files:
+The server account is **SFTP-only**, so rsync-over-SSH does not work (it needs a remote shell and fails with "Read-only file system"). Use `deploy.sh`, which uploads the web files over SFTP:
 
 ```bash
-./deploy.sh          # dry run — preview what would change
-./deploy.sh --live   # deploy for real
+./deploy.sh          # dry run — lists the files it will upload
+./deploy.sh --live   # upload via sftp (prompts for your password)
 ```
 
-rsync/ssh prompts for the password in your terminal; add your SSH key to the server's `~/.ssh/authorized_keys` for a promptless deploy. Alternatively, upload the web files (`index.html`, `styles.css`, `scripts.js`, `parameters.js`, `adtag.js`) via SFTP with FileZilla.
+It uploads `index.html`, `styles.css`, `scripts.js`, `parameters.js`, `adtag.js` and removes the stale `tooltips.js`. Add your SSH key to the server account's `~/.ssh/authorized_keys` for a promptless deploy. Alternatively, upload the same files via SFTP with FileZilla.

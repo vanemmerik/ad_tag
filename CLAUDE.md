@@ -39,4 +39,4 @@ When adding/adjusting requirements, cite Google's exact wording in `requirement.
 - After any change to `adtag.js` or `parameters.js`, run `node test/adtag.test.js`.
 - To verify rendering, serve locally (`python3 -m http.server`) and open `index.html`, or load a share URL (`?adTag1=<encoded tag>`).
 - No linter/formatter is configured; match the existing style (4-space indent, `const` arrow functions).
-- Deployment is a static file sync to the solutions server; there is no CI. Commit/push only when asked.
+- Deployment is a static file upload to the solutions server via `deploy.sh` (SFTP — the account is SFTP-only, so rsync-over-SSH fails with "Read-only file system"). There is no CI. Commit/push only when asked.
