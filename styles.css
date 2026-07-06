@@ -26,6 +26,20 @@ body {
     line-height: 1.5;
 }
 .summary-title { font-weight: bold; margin-bottom: 6px; }
+.summary-card-bad {
+    border-color: #f44336;
+    background: #fdecea;
+}
+.ep-ok { color: #1b5e20; font-weight: bold; }
+.ep-bad { color: #f44336; font-weight: bold; }
+.ep-reason {
+    color: #b71c1c;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 2px 0 6px;
+    max-width: 260px;
+}
+.ep-reason em { color: #7a1c1c; }
 .summary-key {
     display: inline-block;
     min-width: 110px;

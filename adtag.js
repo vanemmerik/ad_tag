@@ -157,23 +157,61 @@
         return p.has('iu') || p.has('gdfp_req') || (p.get('output') || '').includes('vast');
     };
 
+    /* Extract { host, path } from a full or partial URL (lowercased host). */
+    const hostPathOf = (url) => {
+        try {
+            const u = new URL(url);
+            return { host: u.hostname.toLowerCase(), path: u.pathname };
+        } catch (e) {
+            const m = String(url).match(/^[a-z]+:\/\/([^/?#]+)([^?#]*)/i);
+            return m ? { host: m[1].toLowerCase(), path: m[2] || '' } : { host: '', path: '' };
+        }
+    };
+
+    // The only valid GAM ad request endpoints.
+    const CSAI_HOSTS = ['securepubads.g.doubleclick.net', 'pubads.g.doubleclick.net'];
+    const SSAI_HOSTS = ['serverside.doubleclick.net', 'dai.google.com'];
+    const EXPECTED_ENDPOINT =
+        'Expected securepubads.g.doubleclick.net/gampad/ads (client-side) or serverside.doubleclick.net (server-side / SSAI).';
+
+    /*
+     * Validate the request endpoint (host + path). isValidAdTag only checks the
+     * query string, so a typo'd host (server. vs serverside., pubads. missing
+     * .g.) or wrong path (/ads vs /gampad/ads) would otherwise pass unnoticed.
+     * Returns { valid, host, path, reason, expected }.
+     */
+    const validateEndpoint = (url) => {
+        const { host, path } = hostPathOf(url);
+        const fail = (reason) => ({ valid: false, host, path, reason, expected: EXPECTED_ENDPOINT });
+
+        if (!host) return fail('Could not read a host from the tag — is it a full URL?');
+
+        const isCSAIHost = CSAI_HOSTS.includes(host);
+        const isSSAIHost = SSAI_HOSTS.includes(host);
+        if (!isCSAIHost && !isSSAIHost) {
+            return fail(`Unrecognised ad server host: ${host}`);
+        }
+
+        // Client-side gampad requests must use the /gampad/ path.
+        if (isCSAIHost && !/^\/gampad\//.test(path)) {
+            return fail(`Unexpected path for a client-side request: ${path || '(none)'} — expected /gampad/ads`);
+        }
+        // Server-side hosts serve via /gampad/ or pod-serving paths.
+        if (isSSAIHost && !(/^\/gampad\//.test(path) || /\/(pods|ondemand|dai|linear|live)(\/|$)/i.test(path))) {
+            return fail(`Unexpected path for a server-side request: ${path || '(none)'}`);
+        }
+
+        return { valid: true, host, path };
+    };
+
     /*
      * Determine the serving context from the host + path. This drives which
      * requirements actually apply (CSAI vs SSAI is the key fork).
      * Returns { servingMode: 'csai'|'ssai', adType, networkCode, platform }.
      */
     const detectContext = (url) => {
-        let host = '';
-        let path = '';
-        try {
-            const u = new URL(url);
-            host = u.hostname;
-            path = u.pathname;
-        } catch (e) {
-            // Fall back to crude host/path extraction for partial input.
-            const m = String(url).match(/^[a-z]+:\/\/([^/?#]+)([^?#]*)/i);
-            if (m) { host = m[1]; path = m[2]; }
-        }
+        const { host, path } = hostPathOf(url);
+        const endpoint = validateEndpoint(url);
 
         const params = parseAdTag(url);
         const iu = params.iu && params.iu.raw ? params.iu.raw : '';
@@ -202,7 +240,7 @@
         const platform = ('msid' in params || 'an' in params || 'rdid' in params)
             ? 'App / CTV' : 'Web';
 
-        return { servingMode, adType, networkCode, platform, isLive };
+        return { servingMode, adType, networkCode, platform, isLive, endpoint };
     };
 
     /*
@@ -247,6 +285,7 @@
         duplicateParameters,
         containsWhiteSpace,
         isValidAdTag,
+        validateEndpoint,
         detectContext,
         requirementSeverity,
         expectedKeysFor,

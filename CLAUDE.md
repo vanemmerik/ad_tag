@@ -9,7 +9,7 @@ A static, zero-dependency, no-build web tool that validates Google Ad Manager (G
 ## Architecture (keep these boundaries)
 
 - **`parameters.js`** — the data. A single `adTagParameters` object: every GAM parameter keyed by its query-string name. This is the source of truth for descriptions and requirements. Editing content almost always means editing only this file. See "The tooltip catalogue schema" below.
-- **`adtag.js`** — pure logic, **no DOM access**. Parsing, placeholder detection, `detectContext`, `requirementSeverity`, `expectedKeysFor`. Exposed as the `AdTag` global in the browser and via `module.exports` under Node (UMD-style wrapper). Everything here must stay unit-testable.
+- **`adtag.js`** — pure logic, **no DOM access**. Parsing, macro/placeholder detection, `detectContext`, `validateEndpoint`, `requirementSeverity`, `expectedKeysFor`. Exposed as the `AdTag` global in the browser and via `module.exports` under Node (UMD-style wrapper). Everything here must stay unit-testable.
 - **`scripts.js`** — DOM glue only. Reads inputs, renders summary/legend/table, manages share URLs and `localStorage`. Calls into `AdTag.*`; contains no parsing/requirement logic of its own.
 - **`test/adtag.test.js`** — dependency-free Node tests for `adtag.js`. Run with `node test/adtag.test.js`.
 
@@ -54,6 +54,7 @@ Read Google intelligently rather than scraping fixed selectors — that's the wh
 
 - Content lives in **structured fields** (see schema above). The original `tooltips.js` used a misspelled `explination` prose key — do not resurrect it.
 - `parseAdTag` splits each pair on the **first** `=` only, so values containing `=` (base64 `ppsj`, encoded `cust_params`) survive. Don't switch to a naive `split('=')`.
+- `validateEndpoint` checks the host + path against the known GAM endpoints (`CSAI_HOSTS`/`SSAI_HOSTS` in `adtag.js`) — `isValidAdTag` only sniffs the query string, so both are needed. If Google adds a legitimate host/path, extend those constants (and add a test).
 - Never call `decodeURIComponent` on a value that may contain a bare `%` or a `%%MACRO%%` without a try/catch — it throws. Use `AdTag.safeDecode`. `populateFromURL` must not double-decode (`URLSearchParams.get` already decodes once).
 - Macro brace validation is **context-aware** (`hasMalformedMacro(value, servingMode)`): SSAI requires double braces `{{macro}}` (single/unbalanced → `invalid_macro`, red); CSAI accepts single-brace player macros `{random}` and flags only unbalanced braces. `[value]`, `{}`, `%%MACRO%%` are unfilled placeholders (amber).
 - All user/tag-derived text rendered into the table is HTML-escaped (`escapeHTML`) — keep it that way.

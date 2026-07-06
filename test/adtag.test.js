@@ -95,6 +95,29 @@ test('isValidAdTag accepts real tags, rejects junk', () => {
     assert.strictEqual(AdTag.isValidAdTag('https://example.com/page?foo=bar'), false);
 });
 
+// --- endpoint validation (host + path) -----------------------------------
+test('validateEndpoint accepts the real GAM endpoints', () => {
+    assert.strictEqual(AdTag.validateEndpoint(CSAI).valid, true);
+    assert.strictEqual(AdTag.validateEndpoint('https://pubads.g.doubleclick.net/gampad/ads?iu=/1/x').valid, true);
+    assert.strictEqual(AdTag.validateEndpoint('https://serverside.doubleclick.net/gampad/ads?iu=/1/x&ssss=bc').valid, true);
+    assert.strictEqual(AdTag.validateEndpoint('https://serverside.doubleclick.net/pods/live?iu=/1/x').valid, true);
+});
+
+test('validateEndpoint rejects typo hosts (the reported bug)', () => {
+    const a = AdTag.validateEndpoint('https://server.doubleclick.net/gampad/ads?iu=/1/x&ssss=bc');
+    assert.strictEqual(a.valid, false);
+    assert.match(a.reason, /host/i);
+
+    const b = AdTag.validateEndpoint('https://pubads.doubleclick.net/ads?iu=/1/x'); // missing .g.
+    assert.strictEqual(b.valid, false);
+});
+
+test('validateEndpoint rejects a wrong path on a valid host', () => {
+    const r = AdTag.validateEndpoint('https://securepubads.g.doubleclick.net/ads?iu=/1/x');
+    assert.strictEqual(r.valid, false);
+    assert.match(r.reason, /path/i);
+});
+
 // --- context detection ---------------------------------------------------
 test('detectContext identifies CSAI + network code', () => {
     const c = AdTag.detectContext(CSAI);
