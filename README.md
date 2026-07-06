@@ -77,24 +77,37 @@ python3 -m http.server 8000
 
 ### Adding or updating a parameter
 
-Edit `parameters.js`. Each entry looks like:
+Edit `parameters.js`. Entries use **structured fields** — the renderer styles them consistently, so there's no HTML/markup to hand-format, just fill in the blanks:
 
 ```js
-"iu": {
-    "definition": "Ad Unit",
-    "explanation": "The ad unit parameter ... ```iu=/6062/videodemo```",
+"vpos": {
+    "name": "Video Position",
+    "valueType": "constant",                 // "constant" | "variable" (optional)
+    "summary": "Indicates a pre-, mid- or post-roll. Inline `code` via backticks.",
+    "values": [                              // optional: enumerated [value, meaning] pairs
+        ["preroll", "Pre-roll"],
+        ["midroll", "Mid-roll"],
+        ["postroll", "Post-roll"]
+    ],
+    "example": "vpos=preroll",               // string, array, or [code, label] pairs
+    "notes": "Optional extra guidance.",     // optional
+    "docsAnchor": "vpos",                    // optional #anchor for the Google link
     "requirement": {
-        "level": "required",          // required | programmatic | recommended | conditional | optional
-        "appliesTo": ["csai"],        // optional: ["csai"] and/or ["ssai"]; omit = both
-        "note": "Required to implement ad serving in ...",  // exact Google wording
-        "condition": "using video ad rules"                 // only for level: "conditional"
+        "level": "recommended",              // required | programmatic | recommended | conditional
+        "appliesTo": ["csai"],               // optional: ["csai"] and/or ["ssai"]; omit = both
+        "note": "Recommended for programmatic monetization.",  // exact Google wording
+        "condition": "using video ad rules"  // only for level: "conditional"
     }
 }
 ```
 
-Formatting in `explanation`: ```` ```code``` ```` renders as inline code, `*bold*` renders bold, and newlines become line breaks. Omit `requirement` entirely for purely optional parameters.
+Only `name` and `summary` are required; everything else is optional. Omit `requirement` entirely for purely optional parameters; add `"deprecated": true` for retired ones.
 
 Only `required` and `programmatic` parameters are auto-shown when missing (so the table stays focused); `recommended` parameters are styled when present but not force-listed.
+
+### Keeping the catalogue aligned with Google
+
+The tool can't fetch Google's docs live (CORS / no API), so refresh it periodically by asking a Claude Code session to **"run the ad_tag alignment check"** — it diffs the live Google reference against `parameters.js` and proposes updates. The procedure is documented in `CLAUDE.md`.
 
 ---
 

@@ -24,34 +24,85 @@ const flashBanner = (message, tone) => {
 
 const hasTooltip = (key) => Object.prototype.hasOwnProperty.call(AdTag.parameters, key);
 
-const getTooltipContent = (key) => {
-    const data = AdTag.parameters[key];
-    if (!data) return '';
-    let body = (data.explanation || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+// Base URL for the "Google reference" deep link in each tooltip.
+const DOCS_URL = 'https://support.google.com/admanager/answer/10678356?hl=en';
+
+// Inline formatter for structured plain-text fields: escape, then allow only
+// `backtick code` — no other markup to author.
+const inlineFmt = (text) => escapeHTML(String(text)).replace(/`([^`]+?)`/g, '<code>$1</code>');
+
+// Requirement badge + note, shared by both renderers.
+const requirementBadge = (data) => {
+    if (data.deprecated) return '<span class="req-tag req-deprecated">Deprecated</span>';
+    if (!data.requirement) return '';
+    const level = data.requirement.level;
+    const label = {
+        required: 'Required',
+        programmatic: 'Required for programmatic',
+        recommended: 'Recommended',
+        conditional: 'Conditional',
+        optional: 'Optional'
+    }[level] || level;
+    let out = `<span class="req-tag req-${level}">${label}</span>`;
+    if (data.requirement.note) out += `<em class="tt-note">${inlineFmt(data.requirement.note)}</em>`;
+    return out;
+};
+
+// A structured entry uses discrete fields; a legacy entry has a prose
+// `explanation`. The renderer supports both so the catalogue can migrate
+// incrementally.
+const isStructured = (data) =>
+    data.summary || data.values || data.example || data.notes;
+
+const renderStructured = (data) => {
+    let html = '';
+    if (data.summary) html += `<p class="tt-summary">${inlineFmt(data.summary)}</p>`;
+
+    if (Array.isArray(data.values) && data.values.length) {
+        html += '<div class="tt-values">';
+        data.values.forEach(([val, meaning]) => {
+            html += `<div class="tt-val"><code>${escapeHTML(val)}</code>${meaning ? ' — ' + inlineFmt(meaning) : ''}</div>`;
+        });
+        html += '</div>';
+    }
+
+    if (data.example) {
+        const examples = Array.isArray(data.example) ? data.example : [data.example];
+        html += '<div class="tt-example"><span class="tt-label">Example</span>';
+        examples.forEach((ex) => {
+            // an example may be "code" or ["code", "label"]
+            if (Array.isArray(ex)) {
+                html += `<div class="tt-val"><code>${escapeHTML(ex[0])}</code>${ex[1] ? ' — ' + inlineFmt(ex[1]) : ''}</div>`;
+            } else {
+                html += `<code>${escapeHTML(ex)}</code>`;
+            }
+        });
+        html += '</div>';
+    }
+
+    if (data.notes) html += `<p class="tt-notes">${inlineFmt(data.notes)}</p>`;
+
+    const url = data.docsAnchor ? `${DOCS_URL}#${data.docsAnchor}` : DOCS_URL;
+    html += `<a class="tt-docs" href="${url}" target="_blank" rel="noopener">Google reference ↗</a>`;
+    return html;
+};
+
+const renderLegacy = (data) => {
+    let body = escapeHTML(data.explanation || '');
     body = body.replace(/\n/g, '<br>');
     body = body.replace(/```([^`]*?)```/g, '<code>$1</code>');
     body = body.replace(/\*([^*]+?)\*/g, '<strong>$1</strong>');
+    return body;
+};
 
-    let reqLine = '';
-    if (data.deprecated) {
-        reqLine = '<br><span class="req-tag req-deprecated">Deprecated</span>';
-    } else if (data.requirement) {
-        const level = data.requirement.level;
-        const label = {
-            required: 'Required',
-            programmatic: 'Required for programmatic',
-            recommended: 'Recommended',
-            conditional: 'Conditional',
-            optional: 'Optional'
-        }[level] || level;
-        reqLine = `<br><span class="req-tag req-${level}">${label}</span>`;
-        if (data.requirement.note) reqLine += `<br><em>${data.requirement.note}</em>`;
-    }
-
-    return `<strong class="definition">${data.definition}</strong>${reqLine}<br>${body}`;
+const getTooltipContent = (key) => {
+    const data = AdTag.parameters[key];
+    if (!data) return '';
+    const name = data.name || data.definition || key;
+    const type = data.valueType ? `<span class="tt-type">${escapeHTML(data.valueType)}</span>` : '';
+    const badge = requirementBadge(data);
+    const body = isStructured(data) ? renderStructured(data) : renderLegacy(data);
+    return `<strong class="definition">${escapeHTML(name)}${type}</strong>${badge}${body}`;
 };
 
 const paramCellHTML = (key) => {
