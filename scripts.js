@@ -282,10 +282,13 @@ const reviewTag = () => {
            <span class="chip ${ctx.adUnit.valid ? 'ok' : 'bad'}">ad unit ${ctx.adUnit.valid ? '✓' : '✗'}</span>
          </div>
          <div class="card"><div class="card-head">Issues</div>
-           ${issues.length ? issues.map((i) =>
-              `<div class="issue"><span class="badge ${i.level === 'error' ? 'err' : 'warn'}">${i.level === 'error' ? 'Error' : 'Warn'}</span>
-               <code>${escapeHTML(i.key)}</code><span class="imsg">${escapeHTML(i.msg)}</span>
-               <a href="#row-${escapeHTML(i.key)}">jump to component &rarr;</a></div>`).join('')
+           ${issues.length ? issues.map((i) => {
+              const jump = keys.includes(i.key)
+                ? `<a class="jump" data-target="row-${escapeHTML(i.key)}">jump to component &rarr;</a>`
+                : '';
+              return `<div class="issue"><span class="badge ${i.level === 'error' ? 'err' : 'warn'}">${i.level === 'error' ? 'Error' : 'Warn'}</span>
+               <code>${escapeHTML(i.key)}</code><span class="imsg">${escapeHTML(i.msg)}</span>${jump}</div>`;
+              }).join('')
               : '<div class="empty-msg">No issues found.</div>'}
          </div>
          <div class="card"><div class="card-head">Tag anatomy <span class="spacer"></span><span style="font-weight:400;font-size:12px;color:#5f6368">click a segment to jump to it</span></div>
@@ -294,6 +297,11 @@ const reviewTag = () => {
              <button class="toolbtn" id="btnRaw">Show raw values</button>
              <button class="toolbtn" id="btnIssues">Issues only</button></div>
            ${bd}</div>`;
+
+    document.querySelectorAll('.jump').forEach((a) => a.addEventListener('click', () => {
+        const el = document.getElementById(a.dataset.target);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
 
     document.getElementById('btnRaw').addEventListener('click', (e) => {
         document.body.classList.toggle('show-raw');

@@ -137,7 +137,10 @@ input:checked + .slider:before { transform: translateX(14px); }
 .chip.ok { border-color: var(--ok); color: var(--ok); }
 .chip.bad { border-color: var(--err); color: var(--err); }
 
-.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+/* No overflow:hidden here - it would clip the parameter tooltips. Inner
+   blocks that need clipping (e.g. .sub) round their own corners. */
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+.card-head { border-radius: 12px 12px 0 0; }
 .card-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14px; }
 .card-head .spacer { margin-left: auto; }
 .toolbtn { font: inherit; font-size: 12px; width: auto; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--ink); box-shadow: none; margin: 0 0 0 6px; font-weight: 400; }
@@ -149,7 +152,8 @@ input:checked + .slider:before { transform: translateX(14px); }
 .issue:last-child { border-bottom: none; }
 .issue code { font-weight: 700; font-family: ui-monospace, Menlo, monospace; }
 .issue .imsg { color: var(--muted); }
-.issue a { margin-left: auto; font-size: 12px; color: #1a73e8; text-decoration: none; white-space: nowrap; }
+.issue a { margin-left: auto; font-size: 12px; color: #1a73e8; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.issue a:hover { text-decoration: underline; }
 .badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 1px 7px; border-radius: 10px; }
 .badge.err { background: var(--err-bg); color: var(--err); }
 .badge.warn { background: var(--warn-bg); color: var(--warn); }
