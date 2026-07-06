@@ -120,7 +120,7 @@ const adTagParameters = {
         "requirement": {
             "level": "programmatic",
             "appliesTo": ["csai"],
-            "note": "Required to implement ad serving in web and mobile apps; recommended for programmatic monetization."
+            "note": "Required to implement ad serving in web and mobile apps; required if using Ad Exchange or AdSense for dynamic allocation; recommended for programmatic monetization."
         }
     },
     "url": {
@@ -383,7 +383,12 @@ const adTagParameters = {
         "valueType": "variable",
         "summary": "The ordinal number of the mid-roll (mid-roll 1, mid-roll 2, etc.).",
         "example": "mridx=2",
-        "docsAnchor": "mridx"
+        "docsAnchor": "mridx",
+        "requirement": {
+            "level": "conditional",
+            "condition": "targeting, reporting on, or forecasting a specific mid-roll",
+            "note": "Required to target, report on, and forecast on a specific mid-roll."
+        }
     },
     "ptpl": {
         "name": "Ad Break Template ID",
@@ -600,7 +605,7 @@ const adTagParameters = {
         "docsAnchor": "dth",
         "requirement": {
             "level": "recommended",
-            "note": "Recommended for programmatic monetization on connected TV."
+            "note": "Recommended for programmatic monetization in web, mobile apps, connected TV, audio, and digital out-of-home."
         }
     },
     "devt": {
@@ -737,7 +742,11 @@ const adTagParameters = {
         "valueType": "variable",
         "summary": "Comma-separated list of API frameworks the player supports. Used with PAL; overridden if set while using the IMA SDK.",
         "example": "sdk_apis=2,7,9",
-        "docsAnchor": "sdk_apis"
+        "docsAnchor": "sdk_apis",
+        "requirement": {
+            "level": "recommended",
+            "note": "Recommended for programmatic monetization in web, mobile apps, connected TV, audio, and digital out-of-home."
+        }
     },
     "wta": {
         "name": "Why This Ad",
@@ -857,7 +866,12 @@ const adTagParameters = {
         "valueType": "variable",
         "summary": "Publisher provided identifier used for frequency capping, audience segmentation and targeting, sequential ad rotation, and other audience-based delivery controls across devices.",
         "example": "ppid=12JD92JD8078S8J29SDOAKC0EF230337",
-        "docsAnchor": "ppid"
+        "docsAnchor": "ppid",
+        "requirement": {
+            "level": "conditional",
+            "condition": "using a consistent, platform-agnostic identifier",
+            "note": "Required to use a consistent, platform-agnostic identifier."
+        }
     },
     "ppsj": {
         "name": "Publisher Provided Signals (JSON)",
