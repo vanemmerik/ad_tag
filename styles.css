@@ -153,7 +153,6 @@ input:checked + .slider:before { transform: translateX(14px); }
 .issue code { font-weight: 700; font-family: ui-monospace, Menlo, monospace; }
 .issue .imsg { color: var(--muted); }
 .issue a { margin-left: auto; font-size: 12px; color: #1a73e8; text-decoration: none; white-space: nowrap; cursor: pointer; }
-.issue a:hover { text-decoration: underline; }
 .badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 1px 7px; border-radius: 10px; }
 .badge.err { background: var(--err-bg); color: var(--err); }
 .badge.warn { background: var(--warn-bg); color: var(--warn); }
