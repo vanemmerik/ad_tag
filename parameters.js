@@ -820,6 +820,15 @@ const adTagParameters = {
         "example": "tfcd=1",
         "docsAnchor": "tfcd"
     },
+    "tfat": {
+        "name": "Age Treatment",
+        "valueType": "constant",
+        "summary": "Tags the ad request for age treatment, to help manage compliance with GDPR, COPPA, the AADC, the AU Online Safety Act and similar regulations. Place it early in the tag (within the first ~500 characters).",
+        "values": [["0", "No specific age treatment"], ["1", "Child age treatment"], ["2", "Teen age treatment"]],
+        "example": "tfat=1",
+        "docsAnchor": "tfat",
+        "notes": "The newer age-treatment framework alongside the older `tfcd` (tag for child-directed)."
+    },
     "gdpr": {
         "name": "GDPR",
         "valueType": "constant",
@@ -880,6 +889,14 @@ const adTagParameters = {
         "example": "ppsj=<base64-encoded JSON>",
         "notes": 'Decoded JSON example: `{"PublisherProvidedTaxonomySignals":[{"taxonomy":"IAB_AUDIENCE_1_1","values":["6","284"]}]}`',
         "docsAnchor": "ppsj"
+    },
+    "ssj": {
+        "name": "Secure Signals (JSON)",
+        "valueType": "variable",
+        "summary": "The encoded secure signals JSON value; passes secure signals collected on the page to buyers. The secure-signals counterpart to `ppsj`.",
+        "example": "ssj=<encoded_secure_signals>",
+        "docsAnchor": "ssj",
+        "notes": "Recommended if Secure Signals is enabled in your Ad Manager network."
     },
 
     // ----------------------------------------------------------------------
