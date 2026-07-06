@@ -271,7 +271,7 @@ const reviewTag = () => {
         `<div class="verdict ${bad ? 'bad' : 'good'}">
            <span class="verdict-icon">${bad ? '✗' : '✓'}</span>
            <span class="verdict-text">${bad ? 'Invalid tag' : 'Valid tag'}</span>
-           <span class="verdict-counts"><b>${errors}</b> error${errors !== 1 ? 's' : ''} · <b>${warns}</b> warning${warns !== 1 ? 's' : ''} · <b>${oks}</b> OK</span>
+           <span class="verdict-counts"><b>${errors}</b> error${errors !== 1 ? 's' : ''} · <b>${warns}</b> ${warns === 1 ? 'advisory' : 'advisories'} · <b>${oks}</b> OK</span>
          </div>
          <div class="chips">
            <span class="chip"><b>${escapeHTML(ctx.adType)}</b></span>
@@ -286,7 +286,7 @@ const reviewTag = () => {
               const jump = keys.includes(i.key)
                 ? `<a class="jump" data-target="row-${escapeHTML(i.key)}">jump to component &rarr;</a>`
                 : '';
-              return `<div class="issue"><span class="badge ${i.level === 'error' ? 'err' : 'warn'}">${i.level === 'error' ? 'Error' : 'Warn'}</span>
+              return `<div class="issue"><span class="badge ${i.level === 'error' ? 'err' : 'warn'}">${i.level === 'error' ? 'Error' : 'Advisory'}</span>
                <code>${escapeHTML(i.key)}</code><span class="imsg">${escapeHTML(i.msg)}</span>${jump}</div>`;
               }).join('')
               : '<div class="empty-msg">No issues found.</div>'}
