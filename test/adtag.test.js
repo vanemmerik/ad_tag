@@ -118,6 +118,31 @@ test('validateEndpoint rejects a wrong path on a valid host', () => {
     assert.match(r.reason, /path/i);
 });
 
+// --- ad unit (iu) validation ---------------------------------------------
+test('validateAdUnit accepts a well-formed iu', () => {
+    const r = AdTag.validateAdUnit(CSAI);
+    assert.strictEqual(r.valid, true);
+    assert.strictEqual(r.networkCode, '6062');
+});
+
+test('validateAdUnit rejects a missing iu', () => {
+    const r = AdTag.validateAdUnit('https://securepubads.g.doubleclick.net/gampad/ads?gdfp_req=1&output=vast');
+    assert.strictEqual(r.valid, false);
+    assert.match(r.reason, /missing/i);
+});
+
+test('validateAdUnit rejects an empty iu value', () => {
+    const r = AdTag.validateAdUnit('https://securepubads.g.doubleclick.net/gampad/ads?iu=&output=vast');
+    assert.strictEqual(r.valid, false);
+    assert.match(r.reason, /no value/i);
+});
+
+test('validateAdUnit rejects a malformed iu (no ad unit segment)', () => {
+    const r = AdTag.validateAdUnit('https://securepubads.g.doubleclick.net/gampad/ads?iu=/6062&output=vast');
+    assert.strictEqual(r.valid, false);
+    assert.match(r.reason, /malformed|network_code/i);
+});
+
 // --- context detection ---------------------------------------------------
 test('detectContext identifies CSAI + network code', () => {
     const c = AdTag.detectContext(CSAI);

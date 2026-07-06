@@ -123,22 +123,30 @@ const paramCellHTML = (key) => {
 const renderSummary = (ctx1, ctx2, twoTags) => {
     const el = document.getElementById('summary');
     if (!el) return;
+    // Render a valid/invalid status row (Endpoint, Ad unit) with an optional
+    // reason block and, when valid, a trailing detail (e.g. the iu value).
+    const statusRow = (label, res, validDetail) => {
+        if (res.valid) {
+            return `<div><span class="summary-key">${label}</span> <span class="ep-ok">Valid</span>${validDetail || ''}</div>`;
+        }
+        const expected = res.expected ? `<br><em>${escapeHTML(res.expected)}</em>` : '';
+        return `<div><span class="summary-key">${label}</span> <span class="ep-bad">Invalid</span></div>` +
+            `<div class="ep-reason">${escapeHTML(res.reason || '')}${expected}</div>`;
+    };
+
     const card = (ctx, n) => {
         const ep = ctx.endpoint || { valid: true };
-        const epRow = ep.valid
-            ? '<span class="ep-ok">Valid</span>'
-            : '<span class="ep-bad">Invalid</span>';
-        const epReason = ep.valid ? '' :
-            `<div class="ep-reason">${escapeHTML(ep.reason || '')}<br><em>${escapeHTML(ep.expected || '')}</em></div>`;
+        const au = ctx.adUnit || { valid: true };
+        const iuDetail = (au.valid && au.iu) ? ` <span class="summary-iu">${escapeHTML(au.iu)}</span>` : '';
         return `
-        <div class="summary-card${ep.valid ? '' : ' summary-card-bad'}">
+        <div class="summary-card${(ep.valid && au.valid) ? '' : ' summary-card-bad'}">
             <div class="summary-title">${twoTags ? 'Ad Tag ' + n : 'Detected context'}</div>
-            <div><span class="summary-key">Endpoint</span> ${epRow}</div>
-            ${epReason}
-            <div><span class="summary-key">Type</span> ${ctx.adType}</div>
+            ${statusRow('Endpoint', ep)}
+            ${statusRow('Ad unit (iu)', au, iuDetail)}
+            <div><span class="summary-key">Type</span> ${escapeHTML(ctx.adType)}</div>
             <div><span class="summary-key">Serving</span> ${ctx.servingMode === 'ssai' ? 'Server-side (SSAI)' : 'Client-side (CSAI)'}</div>
-            <div><span class="summary-key">Network code</span> ${ctx.networkCode || '—'}</div>
-            <div><span class="summary-key">Platform hint</span> ${ctx.platform}</div>
+            <div><span class="summary-key">Network code</span> ${ctx.networkCode ? escapeHTML(ctx.networkCode) : '—'}</div>
+            <div><span class="summary-key">Platform hint</span> ${escapeHTML(ctx.platform)}</div>
         </div>`;
     };
     el.innerHTML = card(ctx1, 1) + (twoTags && ctx2 ? card(ctx2, 2) : '');
@@ -278,13 +286,18 @@ const compareAdTags = () => {
     const params1 = AdTag.parseAdTag(adTag1, servingMode);
     const params2 = twoTags ? AdTag.parseAdTag(adTag2, mode2) : {};
 
-    // Flag a wrong/typo'd ad server endpoint (host or path). Non-blocking:
-    // the summary shows a persistent red "Invalid" and we still render params.
-    if (!ctx1.endpoint.valid || (ctx2 && !ctx2.endpoint.valid)) {
-        const bad = !ctx1.endpoint.valid ? ctx1.endpoint : ctx2.endpoint;
-        const who = twoTags ? (!ctx1.endpoint.valid ? 'Tag 1: ' : 'Tag 2: ') : '';
-        flashBanner(`Invalid ad server endpoint — ${who}${bad.reason}`);
-    }
+    // Flag critical problems (wrong endpoint, missing/malformed iu ad unit).
+    // Non-blocking: the summary shows persistent red status and params still
+    // render, but a banner surfaces the first critical issue.
+    const critical = [];
+    const collect = (ctx, label) => {
+        if (!ctx) return;
+        if (!ctx.endpoint.valid) critical.push(`${label}invalid endpoint — ${ctx.endpoint.reason}`);
+        if (!ctx.adUnit.valid) critical.push(`${label}${ctx.adUnit.reason}`);
+    };
+    collect(ctx1, twoTags ? 'Tag 1: ' : '');
+    collect(ctx2, 'Tag 2: ');
+    if (critical.length) flashBanner(critical[0]);
 
     renderSummary(ctx1, ctx2, twoTags);
     renderLegend();

@@ -205,6 +205,37 @@
     };
 
     /*
+     * Validate the iu (ad unit) parameter — the single most critical field.
+     * Without a present, non-empty, well-formed ad unit the request fails.
+     * Expected form: /network_code/.../ad_unit (at least two path segments,
+     * the first being the network code).
+     * Returns { valid, iu, networkCode, reason }.
+     */
+    const validateAdUnit = (url) => {
+        const params = parseAdTag(url);
+        let v = params.iu;
+        if (Array.isArray(v)) v = v[0]; // duplicate iu is flagged separately
+
+        if (v === undefined) {
+            return { valid: false, reason: 'The iu (ad unit) parameter is missing — the request will fail.' };
+        }
+        if (v.state === 'empty' || !v.raw) {
+            return { valid: false, reason: 'The iu (ad unit) parameter has no value — the request will fail.' };
+        }
+
+        const raw = v.raw;
+        const segments = raw.split('/').filter(Boolean);
+        if (!raw.startsWith('/') || segments.length < 2) {
+            return {
+                valid: false,
+                iu: raw,
+                reason: 'The iu value is malformed — expected /network_code/.../ad_unit.'
+            };
+        }
+        return { valid: true, iu: raw, networkCode: segments[0] };
+    };
+
+    /*
      * Determine the serving context from the host + path. This drives which
      * requirements actually apply (CSAI vs SSAI is the key fork).
      * Returns { servingMode: 'csai'|'ssai', adType, networkCode, platform }.
@@ -214,8 +245,8 @@
         const endpoint = validateEndpoint(url);
 
         const params = parseAdTag(url);
-        const iu = params.iu && params.iu.raw ? params.iu.raw : '';
-        const networkCode = iu ? iu.split('/').filter(Boolean)[0] || null : null;
+        const adUnit = validateAdUnit(url);
+        const networkCode = adUnit.networkCode || null;
 
         const isSSAI = /serverside\.doubleclick\.net/i.test(host) ||
             /(^|\.)dai\.google\.com$/i.test(host) ||
@@ -240,7 +271,7 @@
         const platform = ('msid' in params || 'an' in params || 'rdid' in params)
             ? 'App / CTV' : 'Web';
 
-        return { servingMode, adType, networkCode, platform, isLive, endpoint };
+        return { servingMode, adType, networkCode, platform, isLive, endpoint, adUnit };
     };
 
     /*
@@ -286,6 +317,7 @@
         containsWhiteSpace,
         isValidAdTag,
         validateEndpoint,
+        validateAdUnit,
         detectContext,
         requirementSeverity,
         expectedKeysFor,
