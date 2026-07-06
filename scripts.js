@@ -1,7 +1,8 @@
 /*
- * DOM glue for the GAM Ad Tag Validation Tool.
- * All parsing / requirement logic lives in adtag.js (AdTag.*); this file only
- * reads inputs, renders the table, summary and legend, and manages state.
+ * DOM glue for the GAM Ad Tag Validation Tool (single-tag inspector).
+ * All parsing / requirement logic lives in adtag.js (AdTag.*); this file reads
+ * the input, renders the verdict + anatomy + component breakdown, and manages
+ * share links and saved state.
  */
 const alertBanner = document.querySelector('#alertBanner');
 
@@ -22,16 +23,17 @@ const flashBanner = (message, tone) => {
     flashBanner._t = setTimeout(() => alertBanner.classList.remove('show'), 4000);
 };
 
-const hasTooltip = (key) => Object.prototype.hasOwnProperty.call(AdTag.parameters, key);
-
-// Base URL for the "Google reference" deep link in each tooltip.
-const DOCS_URL = 'https://support.google.com/admanager/answer/10678356?hl=en';
+const escapeHTML = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Inline formatter for structured plain-text fields: escape, then allow only
-// `backtick code` - no other markup to author.
+// `backtick code`.
 const inlineFmt = (text) => escapeHTML(String(text)).replace(/`([^`]+?)`/g, '<code>$1</code>');
 
-// Requirement badge + note, shared by both renderers.
+const hasTooltip = (key) => Object.prototype.hasOwnProperty.call(AdTag.parameters, key);
+
+/* --- tooltip content (structured, with legacy fallback) ------------------ */
+
 const requirementBadge = (data) => {
     if (data.deprecated) return '<span class="req-tag req-deprecated">Deprecated</span>';
     if (!data.requirement) return '';
@@ -48,16 +50,11 @@ const requirementBadge = (data) => {
     return out;
 };
 
-// A structured entry uses discrete fields; a legacy entry has a prose
-// `explanation`. The renderer supports both so the catalogue can migrate
-// incrementally.
-const isStructured = (data) =>
-    data.summary || data.values || data.example || data.notes;
+const isStructured = (data) => data.summary || data.values || data.example || data.notes;
 
 const renderStructured = (data) => {
     let html = '';
     if (data.summary) html += `<p class="tt-summary">${inlineFmt(data.summary)}</p>`;
-
     if (Array.isArray(data.values) && data.values.length) {
         html += '<div class="tt-values">';
         data.values.forEach(([val, meaning]) => {
@@ -65,12 +62,10 @@ const renderStructured = (data) => {
         });
         html += '</div>';
     }
-
     if (data.example) {
         const examples = Array.isArray(data.example) ? data.example : [data.example];
         html += '<div class="tt-example"><span class="tt-label">Example</span>';
         examples.forEach((ex) => {
-            // an example may be "code" or ["code", "label"]
             if (Array.isArray(ex)) {
                 html += `<div class="tt-val"><code>${escapeHTML(ex[0])}</code>${ex[1] ? ' - ' + inlineFmt(ex[1]) : ''}</div>`;
             } else {
@@ -79,11 +74,9 @@ const renderStructured = (data) => {
         });
         html += '</div>';
     }
-
     if (data.notes) html += `<p class="tt-notes">${inlineFmt(data.notes)}</p>`;
-
     const url = data.docsAnchor ? `${DOCS_URL}#${data.docsAnchor}` : DOCS_URL;
-    html += `<a class="tt-docs" href="${url}" target="_blank" rel="noopener">Google reference ↗</a>`;
+    html += `<a class="tt-docs" href="${url}" target="_blank" rel="noopener">Google reference &#8599;</a>`;
     return html;
 };
 
@@ -95,6 +88,8 @@ const renderLegacy = (data) => {
     return body;
 };
 
+const DOCS_URL = 'https://support.google.com/admanager/answer/10678356?hl=en';
+
 const getTooltipContent = (key) => {
     const data = AdTag.parameters[key];
     if (!data) return '';
@@ -105,274 +100,219 @@ const getTooltipContent = (key) => {
     return `<strong class="definition">${escapeHTML(name)}${type}</strong>${badge}${body}`;
 };
 
-const paramCellHTML = (key) => {
-    const label = document.createTextNode(key);
-    const span = document.createElement('span');
-    span.appendChild(label);
-    if (hasTooltip(key)) {
-        const icon = document.createElement('span');
-        icon.classList.add('tooltip');
-        icon.innerHTML = `<small><strong>&#9432;</strong></small> <span class="tooltiptext">${getTooltipContent(key)}</span>`;
-        span.appendChild(icon);
-    }
-    return span;
+// Parameter cell: key + hover tooltip + role name beneath.
+const paramCell = (key) => {
+    const role = (AdTag.parameters[key] || {}).name || '';
+    const tip = hasTooltip(key)
+        ? `<span class="tooltip"><small><strong>&#9432;</strong></small><span class="tooltiptext">${getTooltipContent(key)}</span></span>`
+        : '';
+    return `<span class="pkey">${escapeHTML(key)}${tip}</span><span class="prole">${escapeHTML(role)}</span>`;
 };
 
-/* --- context summary + legend ------------------------------------------- */
+/* --- catalogue grouping (role each parameter plays) ---------------------- */
 
-const renderSummary = (ctx1, ctx2, twoTags) => {
-    const el = document.getElementById('summary');
-    if (!el) return;
-    // Render a valid/invalid status row (Endpoint, Ad unit) with an optional
-    // reason block and, when valid, a trailing detail (e.g. the iu value).
-    const statusRow = (label, res, validDetail) => {
-        if (res.valid) {
-            return `<div><span class="summary-key">${label}</span> <span class="ep-ok">Valid</span>${validDetail || ''}</div>`;
-        }
-        const expected = res.expected ? `<br><em>${escapeHTML(res.expected)}</em>` : '';
-        return `<div><span class="summary-key">${label}</span> <span class="ep-bad">Invalid</span></div>` +
-            `<div class="ep-reason">${escapeHTML(res.reason || '')}${expected}</div>`;
-    };
+const GROUPS = [
+    ['Core serving', ['iu', 'gdfp_req', 'env', 'output', 'sz', 'correlator', 'description_url', 'url', 'unviewed_position_start', 'plcmt', 'vpmute', 'vpa']],
+    ['Server-side (SSAI)', ['ssss', 'givn', 'paln', 'ipe']],
+    ['Ad rules, pods & duration', ['ad_rule', 'ad_type', 'vad_type', 'afvsz', 'min_ad_duration', 'max_ad_duration', 'sdmax', 'pmnd', 'pmxd', 'pmad', 'pmxfwt', 'pod', 'ppos', 'lip', 'mridx', 'ptpl', 'ptpln', 'nofb', 'vpi']],
+    ['Content targeting', ['cmsid', 'vid', 'vid_d', 'allcues', 'cust_params', 'excl_cat', 'iabexcl', 'ciu_szs']],
+    ['Device / CTV / app', ['msid', 'an', 'rdid', 'idtype', 'is_lat', 'sid', 'pvid', 'pvid_s', 'dth', 'devt', 'ott_placement', 'venuetype', 'ct_ch', 'ct_ne', 'ct_se', 'ct_ti']],
+    ['Measurement', ['aconp', 'vconp', 'vpos', 'omid_p', 'sdk_apis', 'wta', 'hl']],
+    ['Privacy & consent', ['npa', 'rdp', 'ppt', 'ltd', 'tfcd', 'gdpr', 'gdpr_consent', 'addtl_consent', 'us_privacy', 'ipd', 'ppid', 'ppsj']],
+    ['Price floors / creative / testing', ['pp', 'pubf', 'pvtf', 'trt', 'adtest']]
+];
+const GROUP_OF = {};
+GROUPS.forEach(([name, keys]) => keys.forEach((k) => { GROUP_OF[k] = name; }));
+const LIST_PARAMS = { sz: '|,', afvsz: ',', ciu_szs: '|,', iabexcl: ',', sdk_apis: ',', allcues: ',' };
 
-    const card = (ctx, n) => {
-        const ep = ctx.endpoint || { valid: true };
-        const au = ctx.adUnit || { valid: true };
-        const iuDetail = (au.valid && au.iu) ? ` <span class="summary-iu">${escapeHTML(au.iu)}</span>` : '';
-        return `
-        <div class="summary-card${(ep.valid && au.valid) ? '' : ' summary-card-bad'}">
-            <div class="summary-title">${twoTags ? 'Ad Tag ' + n : 'Detected context'}</div>
-            ${statusRow('Endpoint', ep)}
-            ${statusRow('Ad unit (iu)', au, iuDetail)}
-            <div><span class="summary-key">Type</span> ${escapeHTML(ctx.adType)}</div>
-            <div><span class="summary-key">Serving</span> ${ctx.servingMode === 'ssai' ? 'Server-side (SSAI)' : 'Client-side (CSAI)'}</div>
-            <div><span class="summary-key">Network code</span> ${ctx.networkCode ? escapeHTML(ctx.networkCode) : '-'}</div>
-            <div><span class="summary-key">Platform hint</span> ${escapeHTML(ctx.platform)}</div>
-        </div>`;
-    };
-    el.innerHTML = card(ctx1, 1) + (twoTags && ctx2 ? card(ctx2, 2) : '');
-    el.classList.add('show');
+/* --- per-render state (used by classify/decompose) ---------------------- */
+let mode, params;
+
+// How a component should be surfaced: {level:'error'|'warn'|'ok'|'skip', msg}
+const classify = (key, v) => {
+    const sev = AdTag.requirementSeverity(key, mode);
+    if (v === undefined) {
+        if (key === 'cmsid' && params.vid) return { level: 'warn', msg: 'Required alongside vid for content targeting' };
+        if (key === 'vid' && params.cmsid) return { level: 'warn', msg: 'Required alongside cmsid for content targeting' };
+        if (sev === 'required') return { level: 'error', msg: 'Required - parameter missing' };
+        if (sev === 'programmatic') return { level: 'warn', msg: 'Required for programmatic - not present' };
+        if (sev === 'recommended') return { level: 'warn', msg: 'Recommended - not present' };
+        return { level: 'skip' };
+    }
+    if (Array.isArray(v)) return { level: 'warn', msg: 'Duplicate parameter' };
+    if (v.state === 'invalid_macro') return { level: 'error', msg: 'Invalid macro syntax (needs {{macro}})' };
+    if (v.state === 'empty') return sev === 'required' ? { level: 'error', msg: 'Required - no value' } : { level: 'warn', msg: 'No value provided' };
+    if (v.state === 'placeholder') return { level: 'warn', msg: 'Unresolved placeholder' };
+    return { level: 'ok' };
 };
 
-const renderLegend = () => {
-    const el = document.getElementById('legend');
-    if (!el || el.dataset.rendered) return;
-    el.innerHTML = `
-        <span class="legend-item"><span class="swatch sw-required"></span>Required / invalid - missing, empty or malformed macro</span>
-        <span class="legend-item"><span class="swatch sw-recommended"></span>Recommended / conditional - review</span>
-        <span class="legend-item"><span class="swatch sw-ok"></span>Present &amp; valid</span>
-        <span class="legend-item"><span class="swatch sw-diff"></span>Differs between tags</span>`;
-    el.dataset.rendered = '1';
-    el.classList.add('show');
+// Break compound values (cust_params, ppsj, comma/pipe lists) into readable parts.
+const decompose = (key, v) => {
+    if (v === undefined || Array.isArray(v) || v.state === 'empty') return '';
+    const raw = v.raw;
+    if (key === 'cust_params') {
+        const decoded = AdTag.safeDecode(raw);
+        const rows = decoded.split('&').map((pair) => {
+            const i = pair.indexOf('=');
+            const k = i === -1 ? pair : pair.slice(0, i);
+            const val = i === -1 ? '' : pair.slice(i + 1);
+            return `<div class="sub-row"><span class="sk">${escapeHTML(k)}</span><span>${escapeHTML(val)}</span></div>`;
+        }).join('');
+        return `<div class="sub">${rows}</div>`;
+    }
+    if (key === 'ppsj') {
+        try { return `<pre class="json">${escapeHTML(JSON.stringify(JSON.parse(atob(raw)), null, 2))}</pre>`; }
+        catch (e) { return ''; }
+    }
+    if (LIST_PARAMS[key]) {
+        const parts = raw.split(new RegExp('[' + LIST_PARAMS[key].replace(/[|]/g, '\\|') + ']'));
+        if (parts.length > 1) return `<div class="taglist">${parts.map((p) => `<span class="tagchip">${escapeHTML(p)}</span>`).join('')}</div>`;
+    }
+    return '';
 };
 
-/* --- value rendering ----------------------------------------------------- */
-
-// value is the object produced by AdTag.parseAdTag for a key, or undefined.
-// siblings is the parsed param map for the same tag (for cross-param checks).
-const describeValue = (key, value, servingMode, siblings) => {
-    const severity = AdTag.requirementSeverity(key, servingMode);
-
-    if (value === undefined) {
-        // Content targeting requires cmsid + vid together.
-        if (key === 'cmsid' && siblings && siblings.vid) {
-            return { cls: 'no-value', html: `Missing - <code class="parameter">cmsid</code> is required alongside <code class="parameter">vid</code> for content targeting` };
-        }
-        if (key === 'vid' && siblings && siblings.cmsid) {
-            return { cls: 'no-value', html: `Missing - <code class="parameter">vid</code> is required alongside <code class="parameter">cmsid</code> for content targeting` };
-        }
-        if (severity === 'required') {
-            return { cls: 'no-parameter', html: `Required - <code class="parameter">${key}</code> parameter missing` };
-        }
-        if (severity === 'programmatic') {
-            return { cls: 'no-value', html: `Required for programmatic - <code class="parameter">${key}</code> not present` };
-        }
-        if (severity === 'recommended') {
-            return { cls: 'no-value', html: `Recommended - <code class="parameter">${key}</code> not present` };
-        }
-        return { cls: '', html: 'Parameter missing' };
-    }
-
-    if (Array.isArray(value)) {
-        const vals = value.map((v) => v.raw !== undefined ? AdTag.safeDecode(v.raw) : '(no value)');
-        return { cls: 'no-value', html: `Duplicate parameter (${value.length}×): ${escapeHTML(vals.join(', '))}` };
-    }
-
-    if (value.state === 'empty') {
-        const cls = severity === 'required' ? 'no-parameter' : 'no-value';
-        const lead = severity === 'required' ? 'Required - no' : 'No';
-        return { cls, html: `${lead} <code class="parameter">${key}</code> value provided` };
-    }
-
-    if (value.state === 'invalid_macro') {
-        const hint = servingMode === 'ssai'
-            ? 'SSAI macros need double braces <code class="parameter">{{macro}}</code>'
-            : 'unbalanced braces';
-        return { cls: 'invalid', html: `Invalid macro syntax (${hint}): <code class="parameter">${escapeHTML(value.raw)}</code>` };
-    }
-
-    if (value.state === 'placeholder') {
-        return { cls: 'no-value', html: `Unresolved placeholder: <code class="parameter">${escapeHTML(value.raw)}</code>` };
-    }
-
-    // state === 'ok'
-    const decoded = escapeHTML(AdTag.safeDecode(value.raw));
-    const satisfied = ['required', 'programmatic', 'recommended'].includes(severity);
-    return { cls: satisfied ? 'ok' : '', html: decoded };
-};
-
-const escapeHTML = (s) => String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-/* Decide the ordered key list: tag order first, then any missing expected. */
-const orderedKeys = (params1, params2, servingMode) => {
-    const present = [];
-    const seen = new Set();
-    const add = (k) => { if (!seen.has(k)) { seen.add(k); present.push(k); } };
-    Object.keys(params1).forEach(add);
-    Object.keys(params2).forEach(add);
-
-    // conditional pairing: if one of cmsid/vid is present, show its partner too
-    if (seen.has('cmsid') || seen.has('vid')) { add('cmsid'); add('vid'); }
-
-    const missing = AdTag.expectedKeysFor(servingMode)
-        .filter((k) => !seen.has(k))
-        .sort((a, b) => {
-            const rank = (k) => AdTag.requirementSeverity(k, servingMode) === 'required' ? 0 : 1;
-            return rank(a) - rank(b);
-        });
-
-    return present.concat(missing);
+const macroNote = (v) => {
+    if (!v || Array.isArray(v) || !v.raw) return '';
+    if (v.state === 'invalid_macro') return '<span class="macro-bad">&#10007; invalid macro</span>';
+    if (/\{\{[^{}]+\}\}/.test(v.raw)) return '<span class="macro-ok">&#10003; macro</span>';
+    return '';
 };
 
 /* --- main action --------------------------------------------------------- */
 
-const compareAdTags = () => {
-    const adTag1 = document.getElementById('adTag1').value.trim();
-    const adTag2 = document.getElementById('adTag2').value.trim();
-    const twoTags = document.getElementById('tagToggle').checked;
+const clearResults = () => { document.getElementById('results').innerHTML = ''; };
 
-    if (!adTag1 || (twoTags && !adTag2)) {
-        flashBanner('Please enter a valid GAM ad tag');
-        return;
-    }
-    if (!AdTag.isValidAdTag(adTag1) || (twoTags && !AdTag.isValidAdTag(adTag2))) {
+const reviewTag = () => {
+    const tag = document.getElementById('adTag1').value.trim();
+
+    if (!tag) { flashBanner('Please enter a GAM ad tag'); clearResults(); return; }
+    if (!AdTag.isValidAdTag(tag)) {
         flashBanner('That does not look like a GAM ad tag (missing iu / gdfp_req / output=vast)');
+        clearResults();
         return;
     }
-    if (AdTag.containsWhiteSpace(adTag1) || (twoTags && AdTag.containsWhiteSpace(adTag2))) {
+    if (AdTag.containsWhiteSpace(tag)) {
         flashBanner('Ad tag contains whitespace - it will break when requested');
         return;
     }
     alertBanner.classList.remove('show');
 
-    // Duplicates are surfaced as a non-blocking warning; we still render them.
-    const dupes1 = AdTag.duplicateParameters(adTag1);
-    const dupes2 = twoTags ? AdTag.duplicateParameters(adTag2) : [];
-    if (dupes1.length || dupes2.length) {
-        const parts = [];
-        if (dupes1.length) parts.push(`Tag 1: ${dupes1.join(', ')}`);
-        if (dupes2.length) parts.push(`Tag 2: ${dupes2.join(', ')}`);
-        flashBanner(`Duplicate parameters found - ${parts.join(' · ')}`, 'info');
-    }
+    const dupes = AdTag.duplicateParameters(tag);
+    if (dupes.length) flashBanner(`Duplicate parameters found: ${dupes.join(', ')}`, 'info');
 
-    const ctx1 = AdTag.detectContext(adTag1);
-    const ctx2 = twoTags ? AdTag.detectContext(adTag2) : null;
-    // In compare mode use tag 1's serving mode to decide the row set.
-    const servingMode = ctx1.servingMode;
-    const mode2 = ctx2 ? ctx2.servingMode : servingMode;
+    const ctx = AdTag.detectContext(tag);
+    mode = ctx.servingMode;
+    params = AdTag.parseAdTag(tag, mode);
 
-    // Parse each tag with its own serving mode so macro syntax (single-brace
-    // CSAI vs double-brace SSAI) is validated correctly per tag.
-    const params1 = AdTag.parseAdTag(adTag1, servingMode);
-    const params2 = twoTags ? AdTag.parseAdTag(adTag2, mode2) : {};
+    // Ordered key set: present first, then expected-missing.
+    const keys = [];
+    const seen = new Set();
+    const add = (k) => { if (!seen.has(k)) { seen.add(k); keys.push(k); } };
+    Object.keys(params).forEach(add);
+    if (seen.has('cmsid') || seen.has('vid')) { add('cmsid'); add('vid'); }
+    AdTag.expectedKeysFor(mode).forEach(add);
 
-    // Flag critical problems (wrong endpoint, missing/malformed iu ad unit).
-    // Non-blocking: the summary shows persistent red status and params still
-    // render, but a banner surfaces the first critical issue.
-    const critical = [];
-    const collect = (ctx, label) => {
-        if (!ctx) return;
-        if (!ctx.endpoint.valid) critical.push(`${label}invalid endpoint - ${ctx.endpoint.reason}`);
-        if (!ctx.adUnit.valid) critical.push(`${label}${ctx.adUnit.reason}`);
-    };
-    collect(ctx1, twoTags ? 'Tag 1: ' : '');
-    collect(ctx2, 'Tag 2: ');
-    if (critical.length) flashBanner(critical[0]);
+    // Verdict + issues (endpoint & ad unit count as errors).
+    let errors = 0, warns = 0, oks = 0;
+    const issues = [];
+    if (!ctx.endpoint.valid) { errors++; issues.push({ level: 'error', key: 'endpoint', msg: ctx.endpoint.reason }); }
+    if (!ctx.adUnit.valid) { errors++; issues.push({ level: 'error', key: 'iu', msg: ctx.adUnit.reason }); }
+    keys.forEach((k) => {
+        const c = classify(k, params[k]);
+        if (c.level === 'error') { errors++; issues.push({ level: 'error', key: k, msg: c.msg }); }
+        else if (c.level === 'warn') { warns++; issues.push({ level: 'warn', key: k, msg: c.msg }); }
+        else if (c.level === 'ok') oks++;
+    });
+    issues.sort((a, b) => (a.level === 'error' ? 0 : 1) - (b.level === 'error' ? 0 : 1));
+    const bad = errors > 0;
 
-    renderSummary(ctx1, ctx2, twoTags);
-    renderLegend();
+    // Anatomy strip.
+    const anaSegs = [`<span class="seg host">${escapeHTML(tag.split('?')[0].replace(/^https?:\/\//, ''))}</span>`];
+    Object.keys(params).forEach((k) => {
+        const c = classify(k, params[k]);
+        const cls = c.level === 'error' ? 'err' : c.level === 'warn' ? 'warn' : 'ok';
+        const v = params[k];
+        const shown = Array.isArray(v) ? '(dup)' : v.state === 'empty' ? '' : AdTag.safeDecode(v.raw || '');
+        const clip = shown.length > 22 ? shown.slice(0, 22) + '…' : shown;
+        anaSegs.push(`<span class="seg ${cls}" onclick="document.getElementById('row-${k}').scrollIntoView({behavior:'smooth',block:'center'})"><span class="k">${escapeHTML(k)}</span>=${escapeHTML(clip)}</span>`);
+    });
 
-    const tbody = document.getElementById('comparisonTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = '';
-    document.querySelector('#adTag1Header').innerText = twoTags ? 'Ad Tag 1' : (ctx1.adType + ' tag');
-
-    orderedKeys(params1, params2, servingMode).forEach((key) => {
-        const row = tbody.insertRow();
-        row.insertCell(0).appendChild(paramCellHTML(key));
-
-        const d1 = describeValue(key, params1[key], servingMode, params1);
-        const cell1 = row.insertCell(1);
-        cell1.innerHTML = d1.html;
-        if (d1.cls) cell1.classList.add(d1.cls);
-
-        if (twoTags) {
-            const d2 = describeValue(key, params2[key], mode2, params2);
-            const cell2 = row.insertCell(2);
-            cell2.innerHTML = d2.html;
-            if (d2.cls) cell2.classList.add(d2.cls);
-
-            // Highlight genuine value differences between two present values.
-            const v1 = params1[key], v2 = params2[key];
-            const bothOk = v1 && v2 && !Array.isArray(v1) && !Array.isArray(v2) &&
-                v1.state === 'ok' && v2.state === 'ok';
-            if (bothOk) {
-                if (v1.raw === v2.raw) {
-                    cell1.classList.add('same'); cell2.classList.add('same');
-                } else {
-                    cell1.classList.add('diff'); cell2.classList.add('diff');
-                }
+    // Component breakdown, grouped by role.
+    let bd = '';
+    GROUPS.forEach(([name]) => {
+        const rows = keys.filter((k) => (GROUP_OF[k] || 'Other') === name);
+        if (!rows.length) return;
+        let allOk = true, inner = '';
+        rows.forEach((k) => {
+            const v = params[k];
+            const c = classify(k, v);
+            if (c.level === 'skip') return;
+            if (c.level !== 'ok') allOk = false;
+            const icon = c.level === 'error' ? '✗' : c.level === 'warn' ? '▲' : '✓';
+            let valHtml;
+            if (v === undefined || v.state === 'empty') {
+                valHtml = `<span class="${c.level === 'error' ? 'missing' : 'warnmsg'}">${escapeHTML(c.msg)}</span>`;
+            } else if (Array.isArray(v)) {
+                valHtml = `<span class="warnmsg">Duplicate (${v.length}×)</span>`;
+            } else if (v.state === 'invalid_macro') {
+                valHtml = `<span class="missing">${escapeHTML(v.raw)}</span> <span class="macro-bad">&#10007; invalid macro</span>`;
+            } else {
+                valHtml = `<span class="decval">${escapeHTML(AdTag.safeDecode(v.raw))}</span><span class="rawval">${escapeHTML(v.raw)}</span>${macroNote(v)}${decompose(k, v)}`;
             }
-        }
+            inner += `<div class="row ${c.level}" id="row-${k}">
+                <div class="status ${c.level}">${icon}</div>
+                <div>${paramCell(k)}</div>
+                <div class="pval">${valHtml}</div></div>`;
+        });
+        if (inner) bd += `<div class="group ${allOk ? 'allok' : ''}"><div class="group-title">${escapeHTML(name)}</div>${inner}</div>`;
+    });
+
+    document.getElementById('results').innerHTML =
+        `<div class="verdict ${bad ? 'bad' : 'good'}">
+           <span class="verdict-icon">${bad ? '✗' : '✓'}</span>
+           <span class="verdict-text">${bad ? 'Invalid tag' : 'Valid tag'}</span>
+           <span class="verdict-counts"><b>${errors}</b> error${errors !== 1 ? 's' : ''} · <b>${warns}</b> warning${warns !== 1 ? 's' : ''} · <b>${oks}</b> OK</span>
+         </div>
+         <div class="chips">
+           <span class="chip"><b>${escapeHTML(ctx.adType)}</b></span>
+           <span class="chip">${ctx.servingMode === 'ssai' ? 'server-side' : 'client-side'}</span>
+           <span class="chip">network <b>${escapeHTML(ctx.networkCode || '-')}</b></span>
+           <span class="chip">${escapeHTML(ctx.platform)}</span>
+           <span class="chip ${ctx.endpoint.valid ? 'ok' : 'bad'}">endpoint ${ctx.endpoint.valid ? '✓' : '✗'}</span>
+           <span class="chip ${ctx.adUnit.valid ? 'ok' : 'bad'}">ad unit ${ctx.adUnit.valid ? '✓' : '✗'}</span>
+         </div>
+         <div class="card"><div class="card-head">Issues</div>
+           ${issues.length ? issues.map((i) =>
+              `<div class="issue"><span class="badge ${i.level === 'error' ? 'err' : 'warn'}">${i.level === 'error' ? 'Error' : 'Warn'}</span>
+               <code>${escapeHTML(i.key)}</code><span class="imsg">${escapeHTML(i.msg)}</span>
+               <a href="#row-${escapeHTML(i.key)}">jump to component &rarr;</a></div>`).join('')
+              : '<div class="empty-msg">No issues found.</div>'}
+         </div>
+         <div class="card"><div class="card-head">Tag anatomy <span class="spacer"></span><span style="font-weight:400;font-size:12px;color:#5f6368">click a segment to jump to it</span></div>
+           <div class="anatomy">${anaSegs.join('')}</div></div>
+         <div class="card"><div class="card-head">Components <span class="spacer"></span>
+             <button class="toolbtn" id="btnRaw">Show raw values</button>
+             <button class="toolbtn" id="btnIssues">Issues only</button></div>
+           ${bd}</div>`;
+
+    document.getElementById('btnRaw').addEventListener('click', (e) => {
+        document.body.classList.toggle('show-raw');
+        e.target.classList.toggle('active');
+        e.target.textContent = document.body.classList.contains('show-raw') ? 'Show decoded values' : 'Show raw values';
+    });
+    document.getElementById('btnIssues').addEventListener('click', (e) => {
+        document.body.classList.toggle('issues-only');
+        e.target.classList.toggle('active');
     });
 
     saveState();
 };
 
-/* --- toggles / state ----------------------------------------------------- */
-
-const toggleTagInputs = () => {
-    const toggle = document.getElementById('tagToggle').checked;
-    const adTag2Container = document.getElementById('adTag2Container');
-    const adTag2Header = document.getElementById('adTag2Header');
-    const toggleLabel = document.getElementById('toggleLabel');
-    const table = document.getElementById('comparisonTable');
-    const actionButton = document.getElementById('actionButton');
-
-    if (toggle) {
-        adTag2Container.classList.remove('hidden');
-        adTag2Header.classList.remove('hidden');
-        toggleLabel.innerText = 'Inspect single ad tag';
-        table.classList.remove('one-tag');
-        table.classList.add('two-tags');
-        actionButton.innerText = 'Compare Ad Tags';
-    } else {
-        adTag2Container.classList.add('hidden');
-        adTag2Header.classList.add('hidden');
-        toggleLabel.innerText = 'Compare two ad tags';
-        table.classList.remove('two-tags');
-        table.classList.add('one-tag');
-        actionButton.innerText = 'Inspect Ad Tag';
-        document.querySelectorAll('#comparisonTable tbody tr').forEach((r) => {
-            if (r.cells.length === 3) r.deleteCell(2);
-        });
-    }
-};
+/* --- state / share ------------------------------------------------------- */
 
 const saveState = () => {
     if (!document.getElementById('retainToggle').checked) return;
     localStorage.setItem('adTag1', document.getElementById('adTag1').value);
-    localStorage.setItem('adTag2', document.getElementById('adTag2').value);
-    localStorage.setItem('tagToggle', document.getElementById('tagToggle').checked);
     localStorage.setItem('retainToggle', true);
 };
 
@@ -380,10 +320,7 @@ const loadState = () => {
     if (localStorage.getItem('retainToggle') !== 'true') return;
     document.getElementById('retainToggle').checked = true;
     document.getElementById('adTag1').value = localStorage.getItem('adTag1') || '';
-    document.getElementById('adTag2').value = localStorage.getItem('adTag2') || '';
-    document.getElementById('tagToggle').checked = localStorage.getItem('tagToggle') === 'true';
-    toggleTagInputs();
-    if (document.getElementById('adTag1').value) compareAdTags();
+    if (document.getElementById('adTag1').value) reviewTag();
 };
 
 const clearURLQueryParams = () => {
@@ -392,39 +329,29 @@ const clearURLQueryParams = () => {
 };
 
 const clearState = () => {
-    ['adTag1', 'adTag2', 'tagToggle', 'retainToggle'].forEach((k) => localStorage.removeItem(k));
+    ['adTag1', 'retainToggle'].forEach((k) => localStorage.removeItem(k));
     document.getElementById('adTag1').value = '';
-    document.getElementById('adTag2').value = '';
-    document.getElementById('tagToggle').checked = false;
     document.getElementById('retainToggle').checked = false;
-    document.querySelector('#adTag1Header').innerText = 'Ad Tag 1';
+    document.body.classList.remove('show-raw', 'issues-only');
     alertBanner.classList.remove('show');
     clearURLQueryParams();
-    toggleTagInputs();
-    document.getElementById('comparisonTable').getElementsByTagName('tbody')[0].innerHTML = '';
-    const summary = document.getElementById('summary');
-    if (summary) { summary.innerHTML = ''; summary.classList.remove('show'); }
+    clearResults();
 };
 
 const populateFromURL = () => {
     const params = new URLSearchParams(window.location.search);
-    // URLSearchParams already decodes once; do NOT decodeURIComponent again -
-    // a second pass throws on tags containing macros like %%CMS_ID%%.
+    // URLSearchParams already decodes once; do NOT decode again (throws on
+    // tags containing macros like %%CMS_ID%%).
     const adTag1 = params.get('adTag1');
-    const adTag2 = params.get('adTag2');
-    if (adTag1) document.getElementById('adTag1').value = adTag1;
-    if (adTag2) {
-        document.getElementById('adTag2').value = adTag2;
-        document.getElementById('tagToggle').checked = true;
-        toggleTagInputs();
+    if (adTag1) {
+        document.getElementById('adTag1').value = adTag1;
+        reviewTag();
     }
-    if (adTag1 || adTag2) compareAdTags();
 };
 
 const copyShareLink = () => {
     const adTag1 = encodeURIComponent(document.getElementById('adTag1').value);
-    const adTag2 = encodeURIComponent(document.getElementById('adTag2').value);
-    const url = `${window.location.origin}${window.location.pathname}?adTag1=${adTag1}&adTag2=${adTag2}`;
+    const url = `${window.location.origin}${window.location.pathname}?adTag1=${adTag1}`;
     navigator.clipboard.writeText(url);
     flashBanner('Link copied to clipboard', 'info');
 };
