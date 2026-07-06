@@ -3,6 +3,21 @@ body {
     margin: 20px;
 }
 
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+.app-logo {
+    height: 40px;
+    width: auto;
+    display: block;
+}
+.app-header h2 {
+    margin: 0;
+}
+
 .intro {
     max-width: 900px;
     color: #444;

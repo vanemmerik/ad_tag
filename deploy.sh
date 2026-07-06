@@ -28,12 +28,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Web files that belong on the server (everything the browser loads).
 WEB_FILES=(index.html styles.css scripts.js parameters.js adtag.js)
 
+# Directories to upload recursively (e.g. the logo / assets).
+ASSET_DIRS=(assets)
+
 # Files to remove on the server if present (stale / renamed).
 STALE_FILES=(tooltips.js)
 
 echo "Target: ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}"
 echo "Upload:"
 for f in "${WEB_FILES[@]}"; do echo "   + ${f}"; done
+for d in "${ASSET_DIRS[@]}"; do [ -d "${SCRIPT_DIR}/${d}" ] && echo "   + ${d}/ (recursive)"; done
 echo "Remove if present:"
 for f in "${STALE_FILES[@]}"; do echo "   - ${f}"; done
 echo
@@ -53,6 +57,8 @@ trap 'rm -f "$BATCH"' EXIT
   echo "lcd ${SCRIPT_DIR}"
   for f in "${STALE_FILES[@]}"; do echo "-rm ${f}"; done
   for f in "${WEB_FILES[@]}"; do echo "put ${f}"; done
+  # Recursively upload asset dirs (leading '-' ignores errors if absent).
+  for d in "${ASSET_DIRS[@]}"; do [ -d "${SCRIPT_DIR}/${d}" ] && echo "-put -r ${d}"; done
   echo "bye"
 } > "$BATCH"
 
