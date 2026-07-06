@@ -5,16 +5,23 @@
   --ink: #202124; --muted: #5f6368; --line: #dadce0;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    color: var(--ink);
-    min-height: 100vh;
+html {
+    min-height: 100%;
     /* Light at the top so the black Brightcove logo stays legible, easing into
-       a soft cool tint lower down to give the white detail cards contrast. */
+       a soft cool tint lower down to give the white detail cards contrast.
+       On <html> so it fills the full viewport while <body> is a centred column. */
     background: linear-gradient(180deg, #ffffff 0px, #ffffff 150px, #eef2f8 420px, #dfe7f2 100%) fixed;
     background-repeat: no-repeat;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 1200px;
+    color: var(--ink);
+    min-height: 100vh;
+    background: transparent;
 }
 
 .app-header {
@@ -122,7 +129,40 @@ input:checked + .slider:before { transform: translateX(14px); }
 .toggle-label, .toggle-retain { margin: 2px 10px; font-weight: bold; }
 
 /* ------------------------------------------------------------- results */
-#results { max-width: 1040px; }
+#results { max-width: none; }
+
+/* Two-column review layout: sticky left widgets + main component breakdown. */
+.review-grid {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin-top: 18px;
+}
+.review-side {
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: calc(100vh - 32px);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.review-side > * { margin: 0; }               /* gap handles spacing */
+.review-side .verdict { flex-wrap: wrap; }
+.review-side .verdict-counts { margin-left: 0; flex-basis: 100%; margin-top: 6px; }
+/* In the narrow sidebar, let issue rows wrap so the jump link isn't clipped. */
+.review-side .issue { flex-wrap: wrap; }
+.review-side .issue .imsg { flex-basis: 100%; }
+.review-side .issue a { margin-left: auto; }
+.review-main { min-width: 0; }                /* allow inner content to shrink */
+.review-main > .card { margin: 0; }
+
+@media (max-width: 860px) {
+    .review-grid { grid-template-columns: 1fr; }
+    .review-side { position: static; max-height: none; overflow: visible; }
+}
 
 .verdict { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; color: #fff; margin: 18px 0 14px; }
 .verdict.bad { background: linear-gradient(90deg,#d93025,#b3261e); }

@@ -268,7 +268,8 @@ const reviewTag = () => {
     });
 
     document.getElementById('results').innerHTML =
-        `<div class="verdict ${bad ? 'bad' : 'good'}">
+        `<div class="review-grid"><aside class="review-side">
+         <div class="verdict ${bad ? 'bad' : 'good'}">
            <span class="verdict-icon">${bad ? '✗' : '✓'}</span>
            <span class="verdict-text">${bad ? 'Invalid tag' : 'Valid tag'}</span>
            <span class="verdict-counts"><b>${errors}</b> error${errors !== 1 ? 's' : ''} · <b>${warns}</b> ${warns === 1 ? 'advisory' : 'advisories'} · <b>${oks}</b> OK</span>
@@ -293,10 +294,13 @@ const reviewTag = () => {
          </div>
          <div class="card"><div class="card-head">Tag anatomy <span class="spacer"></span><span style="font-weight:400;font-size:12px;color:#5f6368">click a segment to jump to it</span></div>
            <div class="anatomy">${anaSegs.join('')}</div></div>
+         </aside>
+         <main class="review-main">
          <div class="card"><div class="card-head">Components <span class="spacer"></span>
              <button class="toolbtn" id="btnRaw">Show raw values</button>
              <button class="toolbtn" id="btnIssues">Issues only</button></div>
-           ${bd}</div>`;
+           ${bd}</div>
+         </main></div>`;
 
     document.querySelectorAll('.jump').forEach((a) => a.addEventListener('click', () => {
         const el = document.getElementById(a.dataset.target);
