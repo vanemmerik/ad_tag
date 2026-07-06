@@ -180,7 +180,7 @@ test('ssss is required for SSAI but not surfaced for CSAI', () => {
 });
 
 test('core serving params are required in both modes', () => {
-    ['iu', 'env', 'gdfp_req', 'output', 'sz'].forEach((k) => {
+    ['iu', 'env', 'gdfp_req', 'output', 'sz', 'correlator'].forEach((k) => {
         assert.strictEqual(AdTag.requirementSeverity(k, 'csai'), 'required', k + ' csai');
         assert.strictEqual(AdTag.requirementSeverity(k, 'ssai'), 'required', k + ' ssai');
     });

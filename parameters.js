@@ -104,8 +104,8 @@ const adTagParameters = {
         "example": "correlator=4345645667",
         "docsAnchor": "correlator",
         "requirement": {
-            "level": "recommended",
-            "note": "Required to implement ad serving in web, mobile apps, connected TV, audio, and digital out-of-home - but automatically populated by the IMA SDK and by server-side stitching, so it is only authored manually for direct/non-SDK VAST requests."
+            "level": "required",
+            "note": "Required to implement ad serving in web, mobile apps, connected TV, audio, and digital out-of-home. Automatically populated by the IMA SDK and by server-side stitching; author it manually for direct/non-SDK VAST requests."
         }
     },
     "description_url": {

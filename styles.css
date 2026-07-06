@@ -7,8 +7,14 @@
 
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 20px;
     color: var(--ink);
+    min-height: 100vh;
+    /* Light at the top so the black Brightcove logo stays legible, easing into
+       a soft cool tint lower down to give the white detail cards contrast. */
+    background: linear-gradient(180deg, #ffffff 0px, #ffffff 150px, #eef2f8 420px, #dfe7f2 100%) fixed;
+    background-repeat: no-repeat;
 }
 
 .app-header {
