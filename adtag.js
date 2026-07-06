@@ -207,8 +207,8 @@
     /*
      * Validate the iu (ad unit) parameter — the single most critical field.
      * Without a present, non-empty, well-formed ad unit the request fails.
-     * Expected form: /network_code/.../ad_unit (at least two path segments,
-     * the first being the network code).
+     * Expected form: /network_code/.../ad_unit where the FIRST path segment is
+     * the numeric GAM network code and at least one ad unit segment follows.
      * Returns { valid, iu, networkCode, reason }.
      */
     const validateAdUnit = (url) => {
@@ -230,6 +230,13 @@
                 valid: false,
                 iu: raw,
                 reason: 'The iu value is malformed — expected /network_code/.../ad_unit.'
+            };
+        }
+        if (!/^\d+$/.test(segments[0])) {
+            return {
+                valid: false,
+                iu: raw,
+                reason: 'The iu is missing the network code — the first path segment must be your numeric GAM network code (e.g. /23320021099/...).'
             };
         }
         return { valid: true, iu: raw, networkCode: segments[0] };

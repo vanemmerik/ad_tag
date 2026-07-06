@@ -140,7 +140,14 @@ test('validateAdUnit rejects an empty iu value', () => {
 test('validateAdUnit rejects a malformed iu (no ad unit segment)', () => {
     const r = AdTag.validateAdUnit('https://securepubads.g.doubleclick.net/gampad/ads?iu=/6062&output=vast');
     assert.strictEqual(r.valid, false);
-    assert.match(r.reason, /malformed|network_code/i);
+    assert.match(r.reason, /malformed|network code/i);
+});
+
+test('validateAdUnit rejects iu missing the numeric network code', () => {
+    // the reported bug: /QPAC.DigitalStage/vod has no leading numeric network code
+    const r = AdTag.validateAdUnit('https://serverside.doubleclick.net/gampad/ads?iu=/QPAC.DigitalStage/vod&output=vast&ssss=bc');
+    assert.strictEqual(r.valid, false);
+    assert.match(r.reason, /network code/i);
 });
 
 // --- context detection ---------------------------------------------------
