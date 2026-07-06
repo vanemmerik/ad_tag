@@ -1,5 +1,5 @@
 /*
- * Pure ad-tag logic — no DOM access. Everything here is unit-testable in Node
+ * Pure ad-tag logic - no DOM access. Everything here is unit-testable in Node
  * (see test/adtag.test.js). scripts.js consumes these functions to render.
  *
  * The catalogue (adTagParameters) is a browser global when loaded via <script>;
@@ -65,7 +65,7 @@
             return /[{}]/.test(stripped);
         }
 
-        // CSAI / unknown: single braces are legitimate — flag only imbalance.
+        // CSAI / unknown: single braces are legitimate - flag only imbalance.
         let depth = 0;
         for (const ch of value) {
             if (ch === '{') depth++;
@@ -101,7 +101,7 @@
 
         const params = {};
         qs.split('&').forEach((pair) => {
-            if (pair === '') return; // stray '&&' — ignore rather than inventing a key
+            if (pair === '') return; // stray '&&' - ignore rather than inventing a key
             const eq = pair.indexOf('=');
             const key = eq === -1 ? pair : pair.slice(0, eq);
             if (key === '') return;
@@ -184,7 +184,7 @@
         const { host, path } = hostPathOf(url);
         const fail = (reason) => ({ valid: false, host, path, reason, expected: EXPECTED_ENDPOINT });
 
-        if (!host) return fail('Could not read a host from the tag — is it a full URL?');
+        if (!host) return fail('Could not read a host from the tag - is it a full URL?');
 
         const isCSAIHost = CSAI_HOSTS.includes(host);
         const isSSAIHost = SSAI_HOSTS.includes(host);
@@ -194,7 +194,7 @@
 
         // Client-side gampad requests must use the /gampad/ path.
         if (isCSAIHost && !/^\/gampad\//.test(path)) {
-            return fail(`Unexpected path for a client-side request: ${path || '(none)'} — expected /gampad/ads`);
+            return fail(`Unexpected path for a client-side request: ${path || '(none)'} - expected /gampad/ads`);
         }
         // Server-side hosts serve via /gampad/ or pod-serving paths.
         if (isSSAIHost && !(/^\/gampad\//.test(path) || /\/(pods|ondemand|dai|linear|live)(\/|$)/i.test(path))) {
@@ -205,7 +205,7 @@
     };
 
     /*
-     * Validate the iu (ad unit) parameter — the single most critical field.
+     * Validate the iu (ad unit) parameter - the single most critical field.
      * Without a present, non-empty, well-formed ad unit the request fails.
      * Expected form: /network_code/.../ad_unit where the FIRST path segment is
      * the numeric GAM network code and at least one ad unit segment follows.
@@ -217,10 +217,10 @@
         if (Array.isArray(v)) v = v[0]; // duplicate iu is flagged separately
 
         if (v === undefined) {
-            return { valid: false, reason: 'The iu (ad unit) parameter is missing — the request will fail.' };
+            return { valid: false, reason: 'The iu (ad unit) parameter is missing - the request will fail.' };
         }
         if (v.state === 'empty' || !v.raw) {
-            return { valid: false, reason: 'The iu (ad unit) parameter has no value — the request will fail.' };
+            return { valid: false, reason: 'The iu (ad unit) parameter has no value - the request will fail.' };
         }
 
         const raw = v.raw;
@@ -229,14 +229,14 @@
             return {
                 valid: false,
                 iu: raw,
-                reason: 'The iu value is malformed — expected /network_code/.../ad_unit.'
+                reason: 'The iu value is malformed - expected /network_code/.../ad_unit.'
             };
         }
         if (!/^\d+$/.test(segments[0])) {
             return {
                 valid: false,
                 iu: raw,
-                reason: 'The iu is missing the network code — the first path segment must be your numeric GAM network code (e.g. /23320021099/...).'
+                reason: 'The iu is missing the network code - the first path segment must be your numeric GAM network code (e.g. /23320021099/...).'
             };
         }
         return { valid: true, iu: raw, networkCode: segments[0] };
@@ -269,12 +269,12 @@
             servingMode = 'csai';
             adType = 'CSAI';
         } else {
-            // Unknown host — assume client-side so core CSAI checks still apply.
+            // Unknown host - assume client-side so core CSAI checks still apply.
             servingMode = 'csai';
             adType = 'Unknown (assuming CSAI)';
         }
 
-        // App vs web hint (informational only — does not change red flags).
+        // App vs web hint (informational only - does not change red flags).
         const platform = ('msid' in params || 'an' in params || 'rdid' in params)
             ? 'App / CTV' : 'Web';
 
@@ -305,7 +305,7 @@
     /*
      * Keys to force-show for a serving mode even when absent, so genuinely
      * missing parameters surface. Limited to hard-required and
-     * programmatic-required so the table stays focused — plain "recommended"
+     * programmatic-required so the table stays focused - plain "recommended"
      * params are only styled when actually present (see requirementSeverity).
      */
     const expectedKeysFor = (servingMode) =>

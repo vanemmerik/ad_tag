@@ -5,11 +5,11 @@
  * request parameter. Descriptions are based on Google's official reference:
  * https://support.google.com/admanager/answer/10678356
  *
- * ENTRY SCHEMA (structured fields — the renderer styles them consistently, so
+ * ENTRY SCHEMA (structured fields - the renderer styles them consistently, so
  * there is no per-entry markup to hand-format):
  *
  *   name        display name of the parameter.
- *   valueType   "constant" | "variable" (optional) — shown as a small chip.
+ *   valueType   "constant" | "variable" (optional) - shown as a small chip.
  *   summary     one or two plain sentences. Inline `backtick` marks code.
  *   values      optional list of [value, meaning] pairs for enumerated values.
  *   example     a "code" string, an array of them, or [code, label] pairs.
@@ -105,7 +105,7 @@ const adTagParameters = {
         "docsAnchor": "correlator",
         "requirement": {
             "level": "recommended",
-            "note": "Required to implement ad serving in web, mobile apps, connected TV, audio, and digital out-of-home — but automatically populated by the IMA SDK and by server-side stitching, so it is only authored manually for direct/non-SDK VAST requests."
+            "note": "Required to implement ad serving in web, mobile apps, connected TV, audio, and digital out-of-home - but automatically populated by the IMA SDK and by server-side stitching, so it is only authored manually for direct/non-SDK VAST requests."
         }
     },
     "description_url": {
@@ -225,7 +225,7 @@ const adTagParameters = {
         "requirement": {
             "level": "recommended",
             "appliesTo": ["ssai"],
-            "note": "Recommended for programmatic monetization — migrate to givn."
+            "note": "Recommended for programmatic monetization - migrate to givn."
         }
     },
     "ipe": {
@@ -724,7 +724,7 @@ const adTagParameters = {
     "omid_p": {
         "name": "OMID Partner Name",
         "valueType": "variable",
-        "summary": "The partner integrating Open Measurement (OM SDK) and its version — for Active View measurement via OM SDK. Not needed with the IMA SDK (set automatically). With PAL, use the omidPartnerName / omidPartnerVersion APIs; without PAL or IMA, set `omid_p` and `sdk_apis`.",
+        "summary": "The partner integrating Open Measurement (OM SDK) and its version - for Active View measurement via OM SDK. Not needed with the IMA SDK (set automatically). With PAL, use the omidPartnerName / omidPartnerVersion APIs; without PAL or IMA, set `omid_p` and `sdk_apis`.",
         "example": "omid_p=examplepartner/1.0.0.0&sdk_apis=7",
         "docsAnchor": "omid_p",
         "requirement": {
@@ -742,7 +742,7 @@ const adTagParameters = {
     "wta": {
         "name": "Why This Ad",
         "valueType": "constant",
-        "summary": "Indicates the player's support for rendering ad badging (AdChoices). Defaults to 1 when omitted. Supported automatically by the IMA SDK; otherwise players must implement VAST Icon / IconClickFallbackImage support. Send 0 only if you will not render the icon — EEA `wta=0` requests aren't eligible for reservation creatives with Google badging.",
+        "summary": "Indicates the player's support for rendering ad badging (AdChoices). Defaults to 1 when omitted. Supported automatically by the IMA SDK; otherwise players must implement VAST Icon / IconClickFallbackImage support. Send 0 only if you will not render the icon - EEA `wta=0` requests aren't eligible for reservation creatives with Google badging.",
         "values": [["1", "Player renders AdChoices (or omit)"], ["0", "Player will not render AdChoices"]],
         "example": "wta=1",
         "docsAnchor": "wta",

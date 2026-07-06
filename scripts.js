@@ -28,7 +28,7 @@ const hasTooltip = (key) => Object.prototype.hasOwnProperty.call(AdTag.parameter
 const DOCS_URL = 'https://support.google.com/admanager/answer/10678356?hl=en';
 
 // Inline formatter for structured plain-text fields: escape, then allow only
-// `backtick code` — no other markup to author.
+// `backtick code` - no other markup to author.
 const inlineFmt = (text) => escapeHTML(String(text)).replace(/`([^`]+?)`/g, '<code>$1</code>');
 
 // Requirement badge + note, shared by both renderers.
@@ -61,7 +61,7 @@ const renderStructured = (data) => {
     if (Array.isArray(data.values) && data.values.length) {
         html += '<div class="tt-values">';
         data.values.forEach(([val, meaning]) => {
-            html += `<div class="tt-val"><code>${escapeHTML(val)}</code>${meaning ? ' — ' + inlineFmt(meaning) : ''}</div>`;
+            html += `<div class="tt-val"><code>${escapeHTML(val)}</code>${meaning ? ' - ' + inlineFmt(meaning) : ''}</div>`;
         });
         html += '</div>';
     }
@@ -72,7 +72,7 @@ const renderStructured = (data) => {
         examples.forEach((ex) => {
             // an example may be "code" or ["code", "label"]
             if (Array.isArray(ex)) {
-                html += `<div class="tt-val"><code>${escapeHTML(ex[0])}</code>${ex[1] ? ' — ' + inlineFmt(ex[1]) : ''}</div>`;
+                html += `<div class="tt-val"><code>${escapeHTML(ex[0])}</code>${ex[1] ? ' - ' + inlineFmt(ex[1]) : ''}</div>`;
             } else {
                 html += `<code>${escapeHTML(ex)}</code>`;
             }
@@ -145,7 +145,7 @@ const renderSummary = (ctx1, ctx2, twoTags) => {
             ${statusRow('Ad unit (iu)', au, iuDetail)}
             <div><span class="summary-key">Type</span> ${escapeHTML(ctx.adType)}</div>
             <div><span class="summary-key">Serving</span> ${ctx.servingMode === 'ssai' ? 'Server-side (SSAI)' : 'Client-side (CSAI)'}</div>
-            <div><span class="summary-key">Network code</span> ${ctx.networkCode ? escapeHTML(ctx.networkCode) : '—'}</div>
+            <div><span class="summary-key">Network code</span> ${ctx.networkCode ? escapeHTML(ctx.networkCode) : '-'}</div>
             <div><span class="summary-key">Platform hint</span> ${escapeHTML(ctx.platform)}</div>
         </div>`;
     };
@@ -157,8 +157,8 @@ const renderLegend = () => {
     const el = document.getElementById('legend');
     if (!el || el.dataset.rendered) return;
     el.innerHTML = `
-        <span class="legend-item"><span class="swatch sw-required"></span>Required / invalid — missing, empty or malformed macro</span>
-        <span class="legend-item"><span class="swatch sw-recommended"></span>Recommended / conditional — review</span>
+        <span class="legend-item"><span class="swatch sw-required"></span>Required / invalid - missing, empty or malformed macro</span>
+        <span class="legend-item"><span class="swatch sw-recommended"></span>Recommended / conditional - review</span>
         <span class="legend-item"><span class="swatch sw-ok"></span>Present &amp; valid</span>
         <span class="legend-item"><span class="swatch sw-diff"></span>Differs between tags</span>`;
     el.dataset.rendered = '1';
@@ -175,19 +175,19 @@ const describeValue = (key, value, servingMode, siblings) => {
     if (value === undefined) {
         // Content targeting requires cmsid + vid together.
         if (key === 'cmsid' && siblings && siblings.vid) {
-            return { cls: 'no-value', html: `Missing — <code class="parameter">cmsid</code> is required alongside <code class="parameter">vid</code> for content targeting` };
+            return { cls: 'no-value', html: `Missing - <code class="parameter">cmsid</code> is required alongside <code class="parameter">vid</code> for content targeting` };
         }
         if (key === 'vid' && siblings && siblings.cmsid) {
-            return { cls: 'no-value', html: `Missing — <code class="parameter">vid</code> is required alongside <code class="parameter">cmsid</code> for content targeting` };
+            return { cls: 'no-value', html: `Missing - <code class="parameter">vid</code> is required alongside <code class="parameter">cmsid</code> for content targeting` };
         }
         if (severity === 'required') {
-            return { cls: 'no-parameter', html: `Required — <code class="parameter">${key}</code> parameter missing` };
+            return { cls: 'no-parameter', html: `Required - <code class="parameter">${key}</code> parameter missing` };
         }
         if (severity === 'programmatic') {
-            return { cls: 'no-value', html: `Required for programmatic — <code class="parameter">${key}</code> not present` };
+            return { cls: 'no-value', html: `Required for programmatic - <code class="parameter">${key}</code> not present` };
         }
         if (severity === 'recommended') {
-            return { cls: 'no-value', html: `Recommended — <code class="parameter">${key}</code> not present` };
+            return { cls: 'no-value', html: `Recommended - <code class="parameter">${key}</code> not present` };
         }
         return { cls: '', html: 'Parameter missing' };
     }
@@ -199,7 +199,7 @@ const describeValue = (key, value, servingMode, siblings) => {
 
     if (value.state === 'empty') {
         const cls = severity === 'required' ? 'no-parameter' : 'no-value';
-        const lead = severity === 'required' ? 'Required — no' : 'No';
+        const lead = severity === 'required' ? 'Required - no' : 'No';
         return { cls, html: `${lead} <code class="parameter">${key}</code> value provided` };
     }
 
@@ -260,7 +260,7 @@ const compareAdTags = () => {
         return;
     }
     if (AdTag.containsWhiteSpace(adTag1) || (twoTags && AdTag.containsWhiteSpace(adTag2))) {
-        flashBanner('Ad tag contains whitespace — it will break when requested');
+        flashBanner('Ad tag contains whitespace - it will break when requested');
         return;
     }
     alertBanner.classList.remove('show');
@@ -272,7 +272,7 @@ const compareAdTags = () => {
         const parts = [];
         if (dupes1.length) parts.push(`Tag 1: ${dupes1.join(', ')}`);
         if (dupes2.length) parts.push(`Tag 2: ${dupes2.join(', ')}`);
-        flashBanner(`Duplicate parameters found — ${parts.join(' · ')}`, 'info');
+        flashBanner(`Duplicate parameters found - ${parts.join(' · ')}`, 'info');
     }
 
     const ctx1 = AdTag.detectContext(adTag1);
@@ -292,7 +292,7 @@ const compareAdTags = () => {
     const critical = [];
     const collect = (ctx, label) => {
         if (!ctx) return;
-        if (!ctx.endpoint.valid) critical.push(`${label}invalid endpoint — ${ctx.endpoint.reason}`);
+        if (!ctx.endpoint.valid) critical.push(`${label}invalid endpoint - ${ctx.endpoint.reason}`);
         if (!ctx.adUnit.valid) critical.push(`${label}${ctx.adUnit.reason}`);
     };
     collect(ctx1, twoTags ? 'Tag 1: ' : '');
@@ -408,7 +408,7 @@ const clearState = () => {
 
 const populateFromURL = () => {
     const params = new URLSearchParams(window.location.search);
-    // URLSearchParams already decodes once; do NOT decodeURIComponent again —
+    // URLSearchParams already decodes once; do NOT decodeURIComponent again -
     // a second pass throws on tags containing macros like %%CMS_ID%%.
     const adTag1 = params.get('adTag1');
     const adTag2 = params.get('adTag2');
