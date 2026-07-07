@@ -89,7 +89,8 @@ button:hover { background-color: #45a049; }
 #resetButton:hover { background-color: #eeb302; }
 
 /* Share is a button pushed to the right edge of the action row. */
-#shareButton { margin-left: auto; margin-right: 0; background-color: #1a73e8; color: #fff; }
+#shareInfo { margin-left: auto; margin-right: 6px; }     /* pushes the info icon + Share button to the right edge */
+#shareButton { margin-right: 0; background-color: #1a73e8; color: #fff; }
 #shareButton:hover { background-color: #1666d0; }
 
 .banner {
