@@ -34,7 +34,6 @@ body {
 .app-header h2 { margin: 0; }
 
 .intro {
-    max-width: 1040px;
     color: #444;
     line-height: 1.4;
 }
@@ -57,7 +56,7 @@ body {
     margin-bottom: 16px;
     justify-content: left;
 }
-.input-field { position: relative; width: 100%; max-width: 1040px; }
+.input-field { position: relative; width: 100%; }
 .input-container textarea {
     width: 100%;
     height: 120px;
@@ -89,9 +88,9 @@ button:hover { background-color: #45a049; }
 #resetButton { background-color: #ffc107; color: #000; }
 #resetButton:hover { background-color: #eeb302; }
 
-#share_container { display: inline-block; }
-#share_link { display: inline-block; margin-block-start: 22px; color: #007BFF; }
-#share_link:hover { text-decoration: none; }
+/* Share is a button pushed to the right edge of the action row. */
+#shareButton { margin-left: auto; margin-right: 0; background-color: #1a73e8; color: #fff; }
+#shareButton:hover { background-color: #1666d0; }
 
 .banner {
     opacity: 0;
