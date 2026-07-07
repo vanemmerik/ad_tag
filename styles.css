@@ -81,18 +81,14 @@ button {
     cursor: pointer;
     border-radius: 8px;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-    /* transition: background-color 0.3s ease; */
     transition: filter 0.3s ease, transform 0.15s ease;
 }
+button:hover { filter: brightness(1.15); }
+button:active { transform: translateY(1px); }
 #actionButton { background: linear-gradient(90deg, #188038, #0f6b2e); }
-#actionButton:hover { background: linear-gradient(90deg, #45a049, #388e3c); }
-#resetButton { background-color: #ffc107; color: #000; }
-#resetButton:hover { background-color: #eeb302; }
-
-/* Share is a button pushed to the right edge of the action row. */
-#shareInfo { margin-left: auto; margin-right: 6px; }     /* pushes the info icon + Share button to the right edge */
-#shareButton { margin-right: 0; background-color: #1a73e8; color: #fff; }
-#shareButton:hover { background-color: #1666d0; }
+#resetButton { background: linear-gradient(90deg, #ffc107, #eab001); color: #000; }
+#shareButton { margin-right: 0; background: linear-gradient(90deg, #1a73e8, #1565c0) ; color: #fff; }
+#shareInfo { margin-left: auto; margin-right: 6px; }
 
 .banner {
     opacity: 0;
