@@ -13,14 +13,6 @@
     <h2>GAM Ad Tag Validation Tool</h2>
 </header>
 <p class="intro">Inspect a Google Ad Manager (GAM 360) video &amp; audio ad tag.<br>Each parameter is broken out and evaluated against the detected serving context (client-side / CSAI vs server-side / SSAI).</p>
-<div class="toggle-container">
-    <label class="switch">
-        <input type="checkbox" id="retainToggle" onclick="saveState()">
-        <span class="slider"></span>
-    </label>
-    <span class="toggle-retain" id="toggleRetain">Retain tag</span>
-</div>
-
 <div class="input-container">
     <div class="input-field">
         <label for="adTag1">Ad tag</label>
@@ -32,6 +24,11 @@
 <div class="button-container">
     <button id="actionButton" onclick="reviewTag()">Inspect Ad Tag</button>
     <button id="resetButton" onclick="clearState()">Reset</button>
+    <label class="switch">
+        <input type="checkbox" id="retainToggle" onclick="saveState()">
+        <span class="slider"></span>
+    </label>
+    <span class="toggle-retain" id="toggleRetain">Retain tag</span>
     <button id="shareButton" onclick="copyShareLink()" title="Copy this inspection to a shareable URL">Share tag</button>
 </div>
 
