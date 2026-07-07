@@ -289,6 +289,10 @@ body.issues-only .group.allok { display: none; }
     border-style: solid;
     border-color: transparent #555 transparent transparent;
 }
+/* Left-opening variant for tooltips near the right edge (e.g. Share button). */
+.tooltip.left .tooltiptext { left: auto; right: 105%; margin-left: 0; margin-right: 10px; }
+.tooltip.left .tooltiptext::after { left: auto; right: -10px; border-color: transparent transparent transparent #555; }
+
 .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
 .tooltip .tooltiptext .definition { color: #FFF; }
 .tooltip .tooltiptext strong { display: block; font-weight: bold; margin-bottom: 5px; color: #ffa7e6; }
