@@ -74,7 +74,6 @@ button {
     padding: 10px;
     margin: 0 20px 0 0;
     width: 160px;
-    background-color: #4CAF50;
     color: #FFF;
     font-size: 16px;
     font-weight: bold;
@@ -82,9 +81,11 @@ button {
     cursor: pointer;
     border-radius: 8px;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease;
+    /* transition: background-color 0.3s ease; */
+    transition: filter 0.3s ease, transform 0.15s ease;
 }
-button:hover { background-color: #45a049; }
+#actionButton { background: linear-gradient(90deg, #188038, #0f6b2e); }
+#actionButton:hover { background: linear-gradient(90deg, #45a049, #388e3c); }
 #resetButton { background-color: #ffc107; color: #000; }
 #resetButton:hover { background-color: #eeb302; }
 
