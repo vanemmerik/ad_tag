@@ -118,7 +118,7 @@ const GROUPS = [
     ['Content targeting', ['cmsid', 'vid', 'vid_d', 'allcues', 'cust_params', 'excl_cat', 'iabexcl', 'ciu_szs']],
     ['Device / CTV / app', ['msid', 'an', 'rdid', 'idtype', 'is_lat', 'sid', 'pvid', 'pvid_s', 'dth', 'devt', 'ott_placement', 'venuetype', 'ct_ch', 'ct_ne', 'ct_se', 'ct_ti']],
     ['Measurement', ['aconp', 'vconp', 'vpos', 'omid_p', 'sdk_apis', 'wta', 'hl']],
-    ['Privacy & consent', ['npa', 'rdp', 'ppt', 'ltd', 'tfcd', 'gdpr', 'gdpr_consent', 'addtl_consent', 'us_privacy', 'ipd', 'ppid', 'ppsj']],
+    ['Privacy & consent', ['npa', 'rdp', 'ppt', 'ltd', 'tfcd', 'tfat', 'gdpr', 'gdpr_consent', 'addtl_consent', 'us_privacy', 'ipd', 'ppid', 'ppsj', 'ssj']],
     ['Price floors / creative / testing', ['pp', 'pubf', 'pvtf', 'trt', 'adtest']]
 ];
 const GROUP_OF = {};
@@ -237,9 +237,10 @@ const reviewTag = () => {
         anaSegs.push(`<span class="seg ${cls}" onclick="document.getElementById('row-${k}').scrollIntoView({behavior:'smooth',block:'center'})"><span class="k">${escapeHTML(k)}</span>=${escapeHTML(clip)}</span>`);
     });
 
-    // Component breakdown, grouped by role.
+    // Component breakdown, grouped by role. The trailing 'Other' group catches
+    // any catalogue key not listed in GROUPS, so new params can't silently vanish.
     let bd = '';
-    GROUPS.forEach(([name]) => {
+    GROUPS.concat([['Other', []]]).forEach(([name]) => {
         const rows = keys.filter((k) => (GROUP_OF[k] || 'Other') === name);
         if (!rows.length) return;
         let allOk = true, inner = '';
