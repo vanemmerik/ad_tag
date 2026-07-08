@@ -83,7 +83,7 @@ button {
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     transition: filter 0.3s ease, transform 0.15s ease;
 }
-button:hover { filter: brightness(1.15); }
+button:hover { filter: brightness(95%); box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);}
 button:active { transform: translateY(1px); }
 #actionButton { background: linear-gradient(90deg, #188038, #0f6b2e); }
 #resetButton { background: linear-gradient(90deg, #ffc107, #eab001); color: #000; }
